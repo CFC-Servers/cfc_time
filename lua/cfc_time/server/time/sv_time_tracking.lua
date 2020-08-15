@@ -25,15 +25,19 @@ function ctime:updateTimes()
             isValid = false
         end
 
+        local sessionTime = now - joined
+        if sessionTime <= 0 then
+            isValid = false
+        end
+
         if isValid then
-            local sessionTime = now - joined
             local newTime = initialTime + sessionTime
 
             batch[steamId] = newTime
         end
     end
 
-    CFCTime.logger:debug( "Updating " .. table.Count( batch ) .. "times:" )
+    CFCTime.logger:debug( "Updating " .. table.Count( batch ) .. " times:" )
 
     CFCTime.SQL:UpdateTimeBatch( batch )
     ctime.lastUpdate = now
@@ -71,6 +75,11 @@ function ctime:cleanupPlayer( ply )
     -- TODO: Verify bug report from the wiki: https://wiki.facepunch.com/gmod/GM:PlayerDisconnected
     local now = now()
     local steamId = ply:SteamID64()
+
+    if not steamId then
+        CFCTime.logger:error( "Player " .. ply:GetName() .. " did not have a steamID64 on disconnect" )
+        return
+    end
 
     CFCTime.logger:debug( "Player " .. ply:GetName() .. " ( " .. steamId .. " ) left at " .. now )
 
