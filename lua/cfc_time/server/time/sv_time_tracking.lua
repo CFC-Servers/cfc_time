@@ -33,11 +33,15 @@ function ctime:updateTimes()
         end
     end
 
+    CFCTime.logger:debug( "Updating " .. table.Count( batch ) .. "times:" )
+
     CFCTime.SQL:UpdateTimeBatch( batch )
     ctime.lastUpdate = now
 end
 
 function ctime:startTimer()
+    CFCTime.logger:debug( "Starting timer" )
+
     timer.Create(
         self.updateTimerName,
         self.Config.updateInterval,
@@ -55,6 +59,8 @@ function ctime:initPlayer( ply )
     local steamId = ply:SteamID64()
     local initialTime = CFCTime.SQL:getTime( steamId )
 
+    CFCTime.logger:debug( "Player " .. ply:GetName() .. " has initial time of " .. initialTime .. " at " .. now )
+
     self.pendingUpdates[steamId] = {
         joined = now,
         initialTime = initialTime
@@ -63,7 +69,11 @@ end
 
 function ctime:cleanupPlayer( ply )
     -- TODO: Verify bug report from the wiki: https://wiki.facepunch.com/gmod/GM:PlayerDisconnected
+    local now = now()
     local steamId = ply:SteamID64()
+
+    CFCTime.logger:debug( "Player " .. ply:GetName() .. " ( " .. steamId .. " ) left at " .. now )
+
     self.pendingUpdates[steamId].departed = now()
 end
 
