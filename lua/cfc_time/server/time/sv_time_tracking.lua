@@ -1,4 +1,4 @@
-CFCTime.ctime = {}
+CFCTime.ctime = CFCTime.ctime or {}
 local ctime = CFCTime.ctime
 
 local function now()
