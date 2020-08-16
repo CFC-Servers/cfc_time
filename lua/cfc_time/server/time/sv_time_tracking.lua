@@ -1,9 +1,7 @@
 CFCTime.ctime = CFCTime.ctime or {}
 local ctime = CFCTime.ctime
 
-local function now()
-    return os.time()
-end
+local now = os.time
 
 -- <steamID64> = { joined = <timestamp>, departed = <timestamp> | nil, initialTime = <float> }
 ctime.pendingUpdates = {}
@@ -17,7 +15,7 @@ function ctime:updateTimes()
     for steamId, data in pairs( self.pendingUpdates ) do
         local isValid = true
         local joined = data.joined
-        local departed = data.departed
+        local departed = data.departed or now
         local initialTime = data.initialTime
 
         if departed < self.lastUpdate then
@@ -87,8 +85,8 @@ function ctime:cleanupPlayer( ply )
 end
 
 hook.Add( "Think", "CFC_Time_Init", function()
-    ctime:startTimer()
     hook.Remove( "Think", "CFC_Time_Init" )
+    ctime:startTimer()
 end )
 
 hook.Add( "PlayerFullLoad", "CFC_Time_PlayerInit", function( ply )
