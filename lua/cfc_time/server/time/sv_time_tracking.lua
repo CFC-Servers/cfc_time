@@ -15,10 +15,10 @@ function ctime:updateTimes()
     for steamId, data in pairs( self.pendingUpdates ) do
         local isValid = true
         local joined = data.joined
-        local departed = data.departed or now
+        local departed = data.departed
         local initialTime = data.initialTime
 
-        if departed < self.lastUpdate then
+        if departed and departed < self.lastUpdate then
             self.pendingUpdates[steamId] = nil
             isValid = false
         end
