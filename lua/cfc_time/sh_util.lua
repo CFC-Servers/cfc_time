@@ -34,3 +34,17 @@ function CFCTime.includeModules( moduleDir, initFile )
 
     CFCTime.logger:info( "Finished loading modules" )
 end
+
+function CFCTime.addCSModuleFiles( moduleDir )
+    local preDirectory = "cfc_time/" .. moduleDir .. "/"
+
+    local _, directories = file.Find( preDirectory .. "*", "LUA" )
+
+    for _, directory in pairs( directories ) do
+        local files = file.Find( preDirectory .. directory .. "/*", "LUA" )
+
+        for _, fileName in pairs( files ) do
+            AddCSLuaFile( preDirectory .. directory .. "/" .. fileName )
+        end
+    end
+end
