@@ -68,7 +68,7 @@ function ctime:initPlayer( ply )
         initialTime = initialTime
     }
 
-    hook.Run( "cfc_time_playerInit", ply, initialTime, now )
+    hook.Run( "CFC_Time_PlayerInit", ply, initialTime, now )
 end
 
 function ctime:cleanupPlayer( ply )
