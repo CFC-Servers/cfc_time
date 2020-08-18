@@ -1,4 +1,5 @@
--- Load the sv_init.lua from all subfolders, or the files directly if they're alone
+-- Load the *_init.lua from all subfolders, or the files directly if they're alone
+-- TODO: Move to own library
 
 function CFCTime.includeModules( moduleDir, initFile )
     CFCTime.logger:info( "Loading " .. moduleDir .. " modules..." )
