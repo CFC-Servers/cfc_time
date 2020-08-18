@@ -25,7 +25,7 @@ function plyMeta:GetUTimeTotalTime()
 end
 
 if SERVER then
-    hook.Add( "cfc_time_playerInit", "cfc_time_utimeCompat", function( ply, initialTime, currentTime )
+    hook.Add( "CFC_Time_PlayerInit", "CFC_Time_UtimeCompat", function( ply, initialTime, currentTime )
         ply:SetUTime( initialTime )
         ply:SetUTimeStart( currentTime )
     end )
