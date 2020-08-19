@@ -116,7 +116,7 @@ function CFCTime.SQL:NewUserSession( steam_id, cb )
     local preparedNewUser = self.database:prepare( "INSERT IGNORE INTO users (steam_id) VALUES(?)")
     preapredNewUser:setString(1, steam_id)
 
-    local preparedNewSession = self.database:prepare( "INSERT INTO sessions ('user_id', 'session_start') VALUES(?, ?)" )
+    local preparedNewSession = self.database:prepare( "INSERT INTO sessions (user_id, session_start) VALUES(?, ?)" )
     preparedNewSession:setString(1, steam_id)
     preparedNewSession:setNumber(2, os.time())
 
