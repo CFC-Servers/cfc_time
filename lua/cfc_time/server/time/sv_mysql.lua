@@ -5,7 +5,7 @@ CFCTime.SQL.database = mysqloo.connect( "host", "username", "password", "cfc_tim
 function CFCTime.SQL:InitTransaction()
     local transaction = self.database:createTransaction()
 
-    function transaction:onError( _, err )
+    transaction.onError = function( _, err )
         self.Logger:error( err )
     end
 
@@ -15,7 +15,7 @@ end
 function CFCTime.SQL:InitQuery( sql )
     local query = self.database:query( sql )
 
-    function query:onFailure( _, ... )
+    query.onError = function( _, ... )
         CFCTime.Logger:error( ... )
     end
 
