@@ -113,7 +113,7 @@ function CFCTime.SQL:NewUserSession( steam_id, cb )
     local transaction = CFCTime.SQL:InitTransaction()
 
     -- Only insert if they don't exist
-    local preparedNewUser = self.database:prepare( "INSERT IGNORE INTO users ('steam_id') VALUES(?)")
+    local preparedNewUser = self.database:prepare( "INSERT IGNORE INTO users (steam_id) VALUES(?)")
     preapredNewUser:setString(1, steam_id)
 
     local preparedNewSession = self.database:prepare( "INSERT INTO sessions ('user_id', 'session_start') VALUES(?, ?)" )
