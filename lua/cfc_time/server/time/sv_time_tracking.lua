@@ -8,6 +8,9 @@ ctime.pendingUpdates = {}
 ctime.updateTimerName = "CFC_Time_UpdateTimer"
 ctime.lastUpdate = now()
 
+-- steamID65 = database session ID
+ctime.sessions = {}
+
 function ctime:updateTimes()
     local batch = {}
     local now = now()
