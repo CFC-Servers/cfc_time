@@ -225,6 +225,7 @@ end
 --  - sessionId (the id of the newly created session)
 --  - totalTime (the calculated total playtime)
 function storage:PlayerInit( steamId, sessionStart, callback )
+    logger:info( "Receiving PlayerInit call for: " .. tostring( steamId ) )
     local transaction = storage:InitTransaction()
 
     local newUser = self:Prepare( "newUser", nil, steamId )
