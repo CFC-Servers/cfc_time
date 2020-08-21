@@ -45,7 +45,7 @@ function storage:CreateSessionsQuery()
             realm    VARCHAR(10)          NOT NULL,
             user_id  VARCHAR(20)          NOT NULL,
             joined   INT         UNSIGNED NOT NULL,
-            departed INT         UNSIGNED
+            departed INT         UNSIGNED,
             duration MEDIUMINT   UNSIGNED NOT NULL DEFAULT 0,
             FOREIGN KEY (user_id) REFERENCES users (steam_id) ON DELETE CASCADE
         )
