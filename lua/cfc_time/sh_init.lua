@@ -3,7 +3,7 @@ require( "cfclogger" )
 
 CFCTime = {}
 
-CFCTime.logger = CFCLogger( "CFCTime" )
+CFCTime.Logger = CFCLogger( "CFCTime" )
 
 include( "sh_config.lua" )
 include( "sh_util.lua" )
@@ -22,3 +22,5 @@ else
 end
 
 include( "shared/sh_init.lua" )
+
+CFCTime.Logger:info( "Loaded all modules!" )
