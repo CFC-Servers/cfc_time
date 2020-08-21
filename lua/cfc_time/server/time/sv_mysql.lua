@@ -143,7 +143,7 @@ function storage.database:onConnectionFailed( _, err )
 end
 
 hook.Add( "PostGamemodeLoaded", "CFC_Time_DBInit", function()
-    logger:log( "Gamemoded loaded, beginning database init..." )
+    logger:info( "Gamemoded loaded, beginning database init..." )
     storage.database:connect()
 end )
 
