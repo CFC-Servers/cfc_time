@@ -1,7 +1,8 @@
 CFCTime.ctime = CFCTime.ctime or {}
+
 local ctime = CFCTime.ctime
 local logger = CFCTime.Logger
-local storage = CFCTime.SQL
+local storage = CFCTime.Storage
 
 local getNow = os.time
 
