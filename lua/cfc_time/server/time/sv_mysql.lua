@@ -2,12 +2,15 @@ require( "mysqloo" )
 
 -- TODO: Make a config module that will load the connection settings properly
 -- TODO: Load/Set the realm
-CFCTime.SQL.database = mysqloo.connect( "host", "username", "password", "cfc_time" )
-CFCTime.SQL.preparedQueries = {}
+local storage = CFCTime.Storage
+local logger = CFCTime.Logger
+
+storage.database = mysqloo.connect( "host", "username", "password", "cfc_time" )
+storage.preparedQueries = {}
 
 local noop = function()end
 
-function CFCTime.SQL:InitTransaction()
+function storage:InitTransaction()
     local transaction = self.database:createTransaction()
 
     transaction.onError = function( _, err )
@@ -17,17 +20,17 @@ function CFCTime.SQL:InitTransaction()
     return transaction
 end
 
-function CFCTime.SQL:InitQuery( sql )
+function storage:InitQuery( sql )
     local query = self.database:query( sql )
 
     query.onError = function( _, ... )
-        CFCTime.Logger:error( ... )
+        logger:error( ... )
     end
 
     return query
 end
 
-function CFCTime.SQL:CreateUsersQuery()
+function storage:CreateUsersQuery()
     local createUsers = [[
         CREATE TABLE IF NOT EXISTS users(
             steam_id VARCHAR(20) PRIMARY KEY
@@ -37,7 +40,7 @@ function CFCTime.SQL:CreateUsersQuery()
     return self.database:query( createUsers )
 end
 
-function CFCTime.SQL:CreateSessionsQuery()
+function storage:CreateSessionsQuery()
     local createSessions = [[
         CREATE TABLE IF NOT EXISTS sessions(
             id       INT                  PRIMARY KEY AUTO_INCREMENT,
@@ -53,7 +56,7 @@ function CFCTime.SQL:CreateSessionsQuery()
     return self.database:query( createSessions )
 end
 
-function CFCTime.SQL:SessionCleanupQuery()
+function storage:SessionCleanupQuery()
     local fixMissingDepartedTimes = string.format( [[
         UPDATE sessions
         SET departed = joined + duration
@@ -64,18 +67,18 @@ function CFCTime.SQL:SessionCleanupQuery()
     return self.database:query( fixMissingDepartedTimes )
 end
 
-function CFCTime.SQL:AddPreparedStatement( name, query )
+function storage:AddPreparedStatement( name, query )
     local statement = self.database:prepare( query )
 
     statement.onError = function( _, err, sql )
-        CFCTime.Logger:error( err, sql )
+        logger:error( err, sql )
     end
 
     self.preparedStatements[name] = statement
 end
 
-function CFCTime.SQL:PrepareStatements()
-    CFCTime.Logger:info( "Constructing prepared statements..." )
+function storage:PrepareStatements()
+    logger:info( "Constructing prepared statements..." )
 
     local realm = self.realm
 
@@ -97,7 +100,7 @@ function CFCTime.SQL:PrepareStatements()
     self:AddPreparedStatement( "totalTime", totalTime )
 end
 
-function CFCTime.SQL:Prepare( statementName, onSuccess, ... )
+function storage:Prepare( statementName, onSuccess, ... )
     local query = self.preparedStatements[statementName]
     query:clearParameters()
 
@@ -118,36 +121,35 @@ function CFCTime.SQL:Prepare( statementName, onSuccess, ... )
     return query
 end
 
-function CFCTime.SQL.database:onConnected()
-    CFCTime.Logger:info( "DB successfully connected! Beginning init..." )
+function storage.database:onConnected()
+    logger:info( "DB successfully connected! Beginning init..." )
 
-    local transaction = CFCTime.SQL:InitTransaction()
+    local transaction = storage:InitTransaction()
 
-    transaction:addQuery( CFCTime.SQL:CreateUsersQuery() )
-    transaction:addQuery( CFCTime.SQL:CreateSessionsQuery() )
-    transaction:addQuery( CFCTime.SQL:SessionCleanupQuery() )
+    transaction:addQuery( storage:CreateUsersQuery() )
+    transaction:addQuery( storage:CreateSessionsQuery() )
+    transaction:addQuery( storage:SessionCleanupQuery() )
 
     transaction.onSuccess = function()
-        CFCTime.SQL:PrepareStatements()
+        storage:PrepareStatements()
     end
 
     transaction:start()
 end
 
-function CFCTime.SQL.database:onConnectionFailed( _, err )
-    CFCTime.Logger:error( "Failed to connect to database!" )
-    CFCTime.Logger:fatal( err )
+function storage.database:onConnectionFailed( _, err )
+    logger:error( "Failed to connect to database!" )
+    logger:fatal( err )
 end
 
 hook.Add( "PostGamemodeLoaded", "CFC_Time_DBInit", function()
-    CFCTime.Logger:log( "Gamemoded loaded, beginning database init..." )
-    CFCTime.SQL.database:connect()
+    logger:log( "Gamemoded loaded, beginning database init..." )
+    storage.database:connect()
 end )
 
-function CFCTime.SQL:BuildSessionUpdate( data, id )
+function storage:BuildSessionUpdate( data, id )
     local updateSection = "UPDATE sessions "
     local setSection = "SET "
-    local whereSection = "WHERE id = " .. id
     local whereSection = string.format(
         "WHERE id = %s AND realm = %s",
         id, self.realm
@@ -178,8 +180,8 @@ end
 
 --[ API Begins Here ]--
 
-function CFCTime.SQL:UpdateBatch( batchData )
-    local transaction = CFCTime.SQL:InitTransaction()
+function storage:UpdateBatch( batchData )
+    local transaction = storage:InitTransaction()
 
     for sessionId, data in pairs( batchData ) do
         local updateStr = self:BuildSessionUpdate( data, sessionId )
@@ -191,7 +193,7 @@ function CFCTime.SQL:UpdateBatch( batchData )
     transaction:start()
 end
 
-function CFCTime.SQL:GetTotalTime( steamId, cb )
+function storage:GetTotalTime( steamId, cb )
     local onSuccess = function( _, data )
         cb( data )
     end
@@ -201,8 +203,8 @@ function CFCTime.SQL:GetTotalTime( steamId, cb )
     query:start()
 end
 
-function CFCTime.SQL:NewUserSession( steamId, sessionStart, cb )
-    local transaction = CFCTime.SQL:InitTransaction()
+function storage:NewUserSession( steamId, sessionStart, cb )
+    local transaction = storage:InitTransaction()
 
     local newUser = self:Prepare( "newUser", nil, steamId )
     local newSession = self:Prepare( "newSession", nil, steamId, sessionStart )
