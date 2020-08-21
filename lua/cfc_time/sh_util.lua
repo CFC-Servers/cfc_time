@@ -1,8 +1,10 @@
 -- Load the *_init.lua from all subfolders, or the files directly if they're alone
 -- TODO: Move to own library
 
+local logger = CFCTime.Logger
+
 function CFCTime.includeModules( moduleDir, initFile )
-    CFCTime.logger:info( "Loading " .. moduleDir .. " modules..." )
+    logger:info( "Loading " .. moduleDir .. " modules..." )
 
     local preDirectory = "cfc_time/" .. moduleDir .. "/"
 
@@ -23,17 +25,17 @@ function CFCTime.includeModules( moduleDir, initFile )
             end
 
             if not filePath then
-                CFCTime.logger:error( "Module " .. directory .. " has multiple files but no " .. initFile )
+                logger:error( "Module " .. directory .. " has multiple files but no " .. initFile )
             end
         end
 
         if filePath then
             include( filePath )
-            CFCTime.logger:info( "Loading " .. moduleDir .. " module: " .. directory )
+            logger:info( "Loading " .. moduleDir .. " module: " .. directory )
         end
     end
 
-    CFCTime.logger:info( "Finished loading modules" )
+    logger:info( "Finished loading modules" )
 end
 
 function CFCTime.addCSModuleFiles( moduleDir )
