@@ -228,7 +228,7 @@ function storage:PlayerInit( steamId, sessionStart, callback )
     local transaction = storage:InitTransaction()
 
     local newUser = self:Prepare( "newUser", nil, steamId )
-    local newSession = self:Prepare( "newSession", nil, steamId, sessionStart )
+    local newSession = self:Prepare( "newSession", nil, steamId, sessionStart, nil, 0 )
     local totalTime = self:Prepare( "totalTime", nil, steamId )
 
     transaction:addQuery( newUser )
