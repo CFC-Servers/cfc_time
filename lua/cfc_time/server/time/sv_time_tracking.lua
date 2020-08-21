@@ -74,7 +74,7 @@ function ctime:initPlayer( ply )
     local now = getNow()
     local steamId = ply:SteamID64()
 
-    storage:NewUserSession( steamId, now, function( data )
+    storage:PlayerInit( steamId, now, function( data )
         local initialTime = data.totalTime
         local sessionId = data.sessionId
 
