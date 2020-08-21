@@ -57,10 +57,11 @@ end
 function storage:SessionCleanupQuery()
     local fixMissingDepartedTimes = string.format( [[
         UPDATE sessions
-        SET departed = joined + duration
+        SET departed = (joined + duration)
         WHERE departed IS NULL
         AND realm = %s
     ]], self.realm )
+    logger:debug( fixMissingDepartedTimes )
 
     return self.database:query( fixMissingDepartedTimes )
 end
