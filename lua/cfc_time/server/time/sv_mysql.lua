@@ -185,6 +185,9 @@ end
 --[ API Begins Here ]--
 
 function storage:UpdateBatch( batchData )
+    if not batchData then return end
+    if table.Count( batchData ) == 0 then return end
+
     local transaction = storage:InitTransaction()
 
     for sessionId, data in pairs( batchData ) do
