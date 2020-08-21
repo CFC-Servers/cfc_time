@@ -1,6 +1,11 @@
 require( "mysqloo" )
 
+-- TODO: Make a config module that will load the connection settings properly
+-- TODO: Load/Set the realm
 CFCTime.SQL.database = mysqloo.connect( "host", "username", "password", "cfc_time" )
+CFCTime.SQL.preparedQueries = {}
+
+local noop = function()end
 
 function CFCTime.SQL:InitTransaction()
     local transaction = self.database:createTransaction()
@@ -22,18 +27,17 @@ function CFCTime.SQL:InitQuery( sql )
     return query
 end
 
-function CFCTime.SQL.database:onConnected()
-    CFCTime.Logger:info( "DB successfully connected! Beginning init..." )
-
-    local transaction = CFCTime.SQL:InitTransaction()
-
+function CFCTime.SQL:CreateUsersQuery()
     local createUsers = [[
         CREATE TABLE IF NOT EXISTS users(
             steam_id VARCHAR(20) PRIMARY KEY
         );
     ]]
-    local createUsersQuery = self:query( createUsers )
 
+    return self.database:query( createUsers )
+end
+
+function CFCTime.SQL:CreateSessionsQuery()
     local createSessions = [[
         CREATE TABLE IF NOT EXISTS sessions(
             id       INT                  PRIMARY KEY AUTO_INCREMENT,
@@ -45,18 +49,87 @@ function CFCTime.SQL.database:onConnected()
             FOREIGN KEY (user_id) REFERENCES users (steam_id) ON DELETE CASCADE
         )
     ]]
-    local createSessionsQuery = self:query( createSessions )
 
-    local cleanupMissingEndTimes = [[
+    return self.database:query( createSessions )
+end
+
+function CFCTime.SQL:EndTimeCleanupQuery()
+    local cleanupMissingEndTimes = string.format( [[
         UPDATE sessions
         SET end = start + duration
         WHERE end IS NULL
-    ]]
-    local cleanupMissingEndTimesQuery = self:query( cleanupMissingEndTimes )
+        AND realm = %s
+    ]], self.realm )
 
-    transaction:addQuery( createUsersQuery )
-    transaction:addQuery( createSessionsQuery )
-    transaction:addQuery( cleanupMissingEndTimesQuery )
+    return self.database:query( cleanupMissingEndTimes )
+end
+
+function CFCTime.SQL:AddPreparedStatement( name, query )
+    local statement = self.database:prepare( query )
+
+    statement.onError = function( _, err, sql )
+        CFCTime.Logger:error( err, sql )
+    end
+
+    self.preparedStatements[name] = statement
+end
+
+function CFCTime.SQL:PrepareStatements()
+    CFCTime.Logger:info( "Constructing prepared statements..." )
+
+    local realm = self.realm
+
+    local newUser = "INSERT IGNORE INTO users (steam_id) VALUES(?)"
+
+    local newSession = string.format( [[
+        INSERT INTO sessions (user_id, start, realm) VALUES(?, ?, %s)
+    ]], realm )
+
+    local totalTime = string.format( [[
+        SELECT SUM(duration)
+        FROM sessions
+        WHERE user_id = ?
+        AND realm = %s
+    ]], realm )
+
+    self:AddPreparedStatement( "newUser", newUser )
+    self:AddPreparedStatement( "newSession", newSession )
+    self:AddPreparedStatement( "totalTime", totalTime )
+end
+
+function CFCTime.SQL:Prepare( statementName, onSuccess, ... )
+    local query = self.preparedStatements[statementName]
+    query:clearParameters()
+
+    for k, v in pairs( { ... } ) do
+        if isnumber( v ) then
+            query:setNumber( k, v )
+        elseif isstring( v ) then
+            query:setString( k, v )
+        elseif isbool( v ) then
+            query:setBoolean( k, v )
+        else
+            error( "Wrong data type passed to Prepare statement!: " .. v )
+        end
+    end
+
+    query.onSuccess = onSuccess or noop
+
+    return query
+end
+
+function CFCTime.SQL.database:onConnected()
+    CFCTime.Logger:info( "DB successfully connected! Beginning init..." )
+
+    local transaction = CFCTime.SQL:InitTransaction()
+
+    transaction:addQuery( CFCTime.SQL:CreateUsersQuery() )
+    transaction:addQuery( CFCTime.SQL:CreateSessionsQuery() )
+    transaction:addQuery( CFCTime.SQL:EndTimeCleanupQuery() )
+
+    transaction.onSuccess = function()
+        CFCTime.SQL:PrepareStatements()
+    end
 
     transaction:start()
 end
@@ -75,6 +148,10 @@ function CFCTime.SQL:BuildSessionUpdate( data, id )
     local updateSection = "UPDATE sessions "
     local setSection = "SET "
     local whereSection = "WHERE id = " .. id
+    local whereSection = string.format(
+        "WHERE id = %s AND realm = %s",
+        id, self.realm
+    )
 
     local count = table.Count( data )
     local idx = 1
@@ -114,27 +191,23 @@ function CFCTime.SQL:UpdateBatch( batchData )
 end
 
 function CFCTime.SQL:GetTotalTime( steamId, cb )
-    local queryStr = "SELECT SUM(duration) FROM sessions WHERE user_id = " .. steamId
-    local query = self:InitQuery( queryStr )
-
-    query.onSuccess = function( _, data )
+    local onSuccess = function( _, data )
         cb( data )
     end
+
+    local query = self:Prepare( "totalTime", onSuccess, steamId )
+
+    query:start()
 end
 
-function CFCTime.SQL:NewUserSession( steamId, cb )
+function CFCTime.SQL:NewUserSession( steamId, sessionStart, cb )
     local transaction = CFCTime.SQL:InitTransaction()
 
-    -- Only insert if they don't exist
-    local preparedNewUser = self.database:prepare( "INSERT IGNORE INTO users (steam_id) VALUES(?)")
-    preapredNewUser:setString(1, steamId)
+    local newUser = self:Prepare( "newUser", nil, steamId )
+    local newSession = self:Prepare( "newSession", nil, steamId, sessionStart )
 
-    local preparedNewSession = self.database:prepare( "INSERT INTO sessions (user_id, start) VALUES(?, ?)" )
-    preparedNewSession:setString(1, steamId)
-    preparedNewSession:setNumber(2, sessionStart)
-
-    transaction:addQuery( preparedNewUser )
-    transaction:addQuery( preparedNewSession )
+    transaction:addQuery( newUser )
+    transaction:addQuery( newSession )
 
     transaction.onSuccess = function( _, data )
         cb( data )
