@@ -8,8 +8,6 @@ local logger = CFCTime.Logger
 storage.database = mysqloo.connect( "host", "username", "password", "cfc_time" )
 storage.preparedQueries = {}
 
-local noop = function()end
-
 function storage:InitTransaction()
     local transaction = self.database:createTransaction()
 
@@ -118,7 +116,7 @@ function storage:Prepare( statementName, onSuccess, ... )
         end
     end
 
-    query.onSuccess = onSuccess or noop
+    if onSuccess then query.onSuccess = onSuccess end
 
     return query
 end
@@ -178,6 +176,9 @@ function storage:BuildSessionUpdate( data, id )
 
     local query = updateSection .. setSection .. whereSection
 
+    logger:info( "Created sessions update query!" )
+    logger:info( query )
+
     return query
 end
 
@@ -229,7 +230,9 @@ function storage:PlayerInit( steamId, sessionStart, callback )
     transaction:addQuery( totalTime )
 
     transaction.onSuccess = function( _, data )
-        -- TODO: What the hell does data look like here
+        logger:info( "PlayerInit transaction successful!" )
+        PrintTable( data )
+
         local response = {
             totalTime = data.theResultOfTotalTime,
             sessionId = data.theSessionIdFromData
