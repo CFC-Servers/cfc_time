@@ -43,8 +43,8 @@ function CFCTime.SQL:CreateSessionsQuery()
             id       INT                  PRIMARY KEY AUTO_INCREMENT,
             realm    VARCHAR(10)          NOT NULL,
             user_id  VARCHAR(20)          NOT NULL,
-            start    INT         UNSIGNED NOT NULL,
-            end      INT         UNSIGNED NOT NULL,
+            joined   INT         UNSIGNED NOT NULL,
+            departed INT         UNSIGNED NOT NULL,
             duration MEDIUMINT   UNSIGNED NOT NULL DEFAULT 0,
             FOREIGN KEY (user_id) REFERENCES users (steam_id) ON DELETE CASCADE
         )
@@ -53,15 +53,15 @@ function CFCTime.SQL:CreateSessionsQuery()
     return self.database:query( createSessions )
 end
 
-function CFCTime.SQL:EndTimeCleanupQuery()
-    local cleanupMissingEndTimes = string.format( [[
+function CFCTime.SQL:SessionCleanupQuery()
+    local fixMissingDepartedTimes = string.format( [[
         UPDATE sessions
-        SET end = start + duration
-        WHERE end IS NULL
+        SET departed = joined + duration
+        WHERE departed IS NULL
         AND realm = %s
     ]], self.realm )
 
-    return self.database:query( cleanupMissingEndTimes )
+    return self.database:query( fixMissingDepartedTimes )
 end
 
 function CFCTime.SQL:AddPreparedStatement( name, query )
@@ -82,7 +82,7 @@ function CFCTime.SQL:PrepareStatements()
     local newUser = "INSERT IGNORE INTO users (steam_id) VALUES(?)"
 
     local newSession = string.format( [[
-        INSERT INTO sessions (user_id, start, realm) VALUES(?, ?, %s)
+        INSERT INTO sessions (user_id, joined, realm) VALUES(?, ?, %s)
     ]], realm )
 
     local totalTime = string.format( [[
@@ -125,7 +125,7 @@ function CFCTime.SQL.database:onConnected()
 
     transaction:addQuery( CFCTime.SQL:CreateUsersQuery() )
     transaction:addQuery( CFCTime.SQL:CreateSessionsQuery() )
-    transaction:addQuery( CFCTime.SQL:EndTimeCleanupQuery() )
+    transaction:addQuery( CFCTime.SQL:SessionCleanupQuery() )
 
     transaction.onSuccess = function()
         CFCTime.SQL:PrepareStatements()
@@ -153,6 +153,7 @@ function CFCTime.SQL:BuildSessionUpdate( data, id )
         id, self.realm
     )
 
+    -- TODO: Have a safeguard here for invalid keys?
     local count = table.Count( data )
     local idx = 1
     for k, v in pairs( data ) do
@@ -205,12 +206,20 @@ function CFCTime.SQL:NewUserSession( steamId, sessionStart, cb )
 
     local newUser = self:Prepare( "newUser", nil, steamId )
     local newSession = self:Prepare( "newSession", nil, steamId, sessionStart )
+    local totalTime = self:Prepare( "totalTime", nil, steamId )
 
     transaction:addQuery( newUser )
     transaction:addQuery( newSession )
+    transaction:addQuery( totalTime )
 
     transaction.onSuccess = function( _, data )
-        cb( data )
+        -- TODO: What the hell does data look like here
+        local response = {
+            totalTime = data.theResultOfTotalTime,
+            sessionId = data.theSessionIdFromData
+        }
+
+        cb( response )
     end
 
     transaction:start()

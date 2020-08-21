@@ -1,28 +1,32 @@
 CFCTime.ctime = CFCTime.ctime or {}
 local ctime = CFCTime.ctime
+local logger = CFCTime.Logger
+local storage = CFCTime.SQL
 
-local now = os.time
+local getNow = os.time
 
--- <steamID64> = { joined = <timestamp>, departed = <timestamp> | nil, initialTime = <float> }
+-- <steamID64> = { joined = <timestamp>, departed = <timestamp> | nil, duration = <float> }
 ctime.pendingUpdates = {}
 ctime.updateTimerName = "CFC_Time_UpdateTimer"
-ctime.lastUpdate = now()
+ctime.lastUpdate = getNow()
 
 -- steamID65 = database session ID
 ctime.sessions = {}
 
 function ctime:updateTimes()
     local batch = {}
-    local now = now()
+    local now = getNow()
 
     for steamId, data in pairs( self.pendingUpdates ) do
         local isValid = true
+
         local joined = data.joined
         local departed = data.departed
         local initialTime = data.initialTime
 
         if departed and departed < self.lastUpdate then
             self.pendingUpdates[steamId] = nil
+            self.sessions[steamId] = nil
             isValid = false
         end
 
@@ -34,18 +38,25 @@ function ctime:updateTimes()
         if isValid then
             local newTime = initialTime + sessionTime
 
-            batch[steamId] = newTime
+            data.duration = newTime
+            self.pendingUpdates[steamId].duration = newTime
+
+            -- TODO: Find a better place to store the initial time so we don't have to do this
+            data.initialTime = nil
+
+            local sessionId = self.sessions[steamId]
+            batch[sessionId] = data
         end
     end
 
-    CFCTime.logger:debug( "Updating " .. table.Count( batch ) .. " times:" )
+    logger:debug( "Updating " .. table.Count( batch ) .. " sessions:" )
 
-    CFCTime.SQL:UpdateTimeBatch( batch )
+    storage:UpdateBatch( batch )
     ctime.lastUpdate = now
 end
 
 function ctime:startTimer()
-    CFCTime.logger:debug( "Starting timer" )
+    logger:debug( "Starting timer" )
 
     timer.Create(
         self.updateTimerName,
@@ -60,33 +71,40 @@ function ctime:stopTimer()
 end
 
 function ctime:initPlayer( ply )
-    local now = now()
+    local now = getNow()
     local steamId = ply:SteamID64()
-    local initialTime = CFCTime.SQL:getTime( steamId )
 
-    CFCTime.logger:debug( "Player " .. ply:GetName() .. " has initial time of " .. initialTime .. " at " .. now )
+    storage:NewUserSession( steamId, now, function( data )
+        local initialTime = data.totalTime
+        local sessionId = data.sessionId
 
-    self.pendingUpdates[steamId] = {
-        joined = now,
-        initialTime = initialTime
-    }
+        ctime.sessions[steamId] = sessionId
 
-    hook.Run( "CFC_Time_PlayerInit", ply, initialTime, now )
+        logger:debug( "Player " .. ply:GetName() .. " has initial time of " .. initialTime .. " at " .. now )
+
+        self.pendingUpdates[steamId] = {
+            joined = now,
+            -- TODO: Find a better way to store initialTime
+            initialTime = initialTime
+        }
+
+        hook.Run( "CFC_Time_PlayerInit", ply, initialTime, now )
+    end )
 end
 
 function ctime:cleanupPlayer( ply )
     -- TODO: Verify bug report from the wiki: https://wiki.facepunch.com/gmod/GM:PlayerDisconnected
-    local now = now()
+    local now = getNow()
     local steamId = ply:SteamID64()
 
     if not steamId then
-        CFCTime.logger:error( "Player " .. ply:GetName() .. " did not have a steamID64 on disconnect" )
+        logger:error( "Player " .. ply:GetName() .. " did not have a steamID64 on disconnect" )
         return
     end
 
-    CFCTime.logger:debug( "Player " .. ply:GetName() .. " ( " .. steamId .. " ) left at " .. now )
+    logger:debug( "Player " .. ply:GetName() .. " ( " .. steamId .. " ) left at " .. now )
 
-    self.pendingUpdates[steamId].departed = now()
+    self.pendingUpdates[steamId].departed = getNow()
 end
 
 hook.Add( "Think", "CFC_Time_Init", function()
