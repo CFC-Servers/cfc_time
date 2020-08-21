@@ -80,6 +80,7 @@ function ctime:initPlayer( ply )
     local steamId = ply:SteamID64()
 
     storage:PlayerInit( steamId, now, function( data )
+        PrintTable( data )
         local initialTime = data.totalTime
         local sessionId = data.sessionId
 
