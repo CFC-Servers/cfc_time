@@ -137,7 +137,7 @@ function storage.database:onConnected()
     transaction:start()
 end
 
-function storage.database:onConnectionFailed( _, err )
+function storage.database:onConnectionFailed( err )
     logger:error( "Failed to connect to database!" )
     logger:fatal( err )
 end
