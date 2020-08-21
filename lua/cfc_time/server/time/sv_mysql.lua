@@ -235,9 +235,10 @@ function storage:PlayerInit( steamId, sessionStart, callback )
     transaction:addQuery( newSession )
     transaction:addQuery( totalTime )
 
-    transaction.onSuccess = function( q, data, data2, data3 )
+    transaction.onSuccess = function( ... )
+        local data = { ... }
         logger:info( "PlayerInit transaction successful!" )
-        PrintTable({q,data,data2,data3})
+        PrintTable( { ... } )
 
         local response = {
             totalTime = data.theResultOfTotalTime,
