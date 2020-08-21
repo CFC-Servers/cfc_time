@@ -47,7 +47,7 @@ function storage:CreateSessionsQuery()
             realm    VARCHAR(10)          NOT NULL,
             user_id  VARCHAR(20)          NOT NULL,
             joined   INT         UNSIGNED NOT NULL,
-            departed INT         UNSIGNED NOT NULL,
+            departed INT         UNSIGNED
             duration MEDIUMINT   UNSIGNED NOT NULL DEFAULT 0,
             FOREIGN KEY (user_id) REFERENCES users (steam_id) ON DELETE CASCADE
         )
@@ -85,7 +85,7 @@ function storage:PrepareStatements()
     local newUser = "INSERT IGNORE INTO users (steam_id) VALUES(?)"
 
     local newSession = string.format( [[
-        INSERT INTO sessions (user_id, joined, realm) VALUES(?, ?, %s)
+        INSERT INTO sessions (user_id, joined, departed, duration, realm) VALUES(?, ?, ?, ?, %s)
     ]], realm )
 
     local totalTime = string.format( [[
@@ -111,6 +111,8 @@ function storage:Prepare( statementName, onSuccess, ... )
             query:setString( k, v )
         elseif isbool( v ) then
             query:setBoolean( k, v )
+        elseif v == nil then
+            query:setNull( k )
         else
             error( "Wrong data type passed to Prepare statement!: " .. v )
         end
@@ -147,6 +149,7 @@ hook.Add( "PostGamemodeLoaded", "CFC_Time_DBInit", function()
     storage.database:connect()
 end )
 
+-- TODO: Find a better/safer way to do this
 function storage:BuildSessionUpdate( data, id )
     local updateSection = "UPDATE sessions "
     local setSection = "SET "
@@ -193,9 +196,9 @@ function storage:UpdateBatch( batchData )
     transaction:start()
 end
 
-function storage:GetTotalTime( steamId, cb )
+function storage:GetTotalTime( steamId, callback )
     local onSuccess = function( _, data )
-        cb( data )
+        callback( data )
     end
 
     local query = self:Prepare( "totalTime", onSuccess, steamId )
@@ -203,7 +206,18 @@ function storage:GetTotalTime( steamId, cb )
     query:start()
 end
 
-function storage:NewUserSession( steamId, sessionStart, cb )
+function storage:CreateSession( callback, steamId, sessionStart, sessionEnd, duration )
+    local newSession = self:Prepare( "newSession", callback, steamId, sessionStart, sessionEnd, duration )
+    newSession:start()
+end
+
+-- Takes a steamid, a session start timestamp, and a callback, then:
+--  - Creates a new user (if needed)
+--  - Creates a new session with given values
+-- Calls callback with a structure containing:
+--  - sessionId (the id of the newly created session)
+--  - totalTime (the calculated total playtime)
+function storage:PlayerInit( steamId, sessionStart, callback )
     local transaction = storage:InitTransaction()
 
     local newUser = self:Prepare( "newUser", nil, steamId )
@@ -221,7 +235,7 @@ function storage:NewUserSession( steamId, sessionStart, cb )
             sessionId = data.theSessionIdFromData
         }
 
-        cb( response )
+        callback( response )
     end
 
     transaction:start()
