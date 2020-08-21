@@ -94,9 +94,19 @@ function storage:PrepareStatements()
         AND realm = '%s'
     ]], realm )
 
+    local latestSession = string.format( [[
+        SELECT *
+        FROM sessions
+        WHERE user_id = ?
+        AND realm = '%s'
+        ORDER BY joined DESC
+        LIMIT 1
+    ]], realm )
+
     self:AddPreparedStatement( "newUser", newUser )
     self:AddPreparedStatement( "newSession", newSession )
     self:AddPreparedStatement( "totalTime", totalTime )
+    self:AddPreparedStatement( "latestSession", latestSession )
 end
 
 function storage:Prepare( statementName, onSuccess, ... )
@@ -231,15 +241,17 @@ function storage:PlayerInit( steamId, sessionStart, callback )
     local newUser = self:Prepare( "newUser", nil, steamId )
     local newSession = self:Prepare( "newSession", nil, steamId, sessionStart, nil, 0 )
     local totalTime = self:Prepare( "totalTime", nil, steamId )
+    local sessionData = self:Prepare( "latestSession", nil, steamId )
 
     transaction:addQuery( newUser )
     transaction:addQuery( newSession )
     transaction:addQuery( totalTime )
+    transaction:addQuery( sessionData )
 
-    transaction.onSuccess = function( ... )
-        local data = { ... }
+    transaction.onSuccess = function( q, data )
+        print( q, data )
         logger:info( "PlayerInit transaction successful!" )
-        PrintTable( { ... } )
+        if data then PrintTable( data ) end
 
         local response = {
             totalTime = data.theResultOfTotalTime,

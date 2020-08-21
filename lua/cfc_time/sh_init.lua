@@ -4,6 +4,7 @@ require( "cfclogger" )
 CFCTime = {}
 
 CFCTime.Logger = CFCLogger( "CFCTime" )
+CFCTime.Logger:on("error"):call(error)
 
 include( "sh_config.lua" )
 include( "sh_util.lua" )

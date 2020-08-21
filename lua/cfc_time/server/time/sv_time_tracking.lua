@@ -86,7 +86,7 @@ function ctime:initPlayer( ply )
 
         ctime.sessions[steamId] = sessionId
 
-        logger:debug( "Player " .. ply:GetName() .. " has initial time of " .. initialTime .. " at " .. now )
+        logger:debug( "Player " .. ply:GetName() .. " has initial time of " .. tostring(initialTime) .. " at " .. now )
 
         self.pendingUpdates[steamId] = {
             joined = now,
