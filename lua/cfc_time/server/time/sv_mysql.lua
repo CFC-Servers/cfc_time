@@ -59,7 +59,7 @@ function storage:SessionCleanupQuery()
         UPDATE sessions
         SET departed = (joined + duration)
         WHERE departed IS NULL
-        AND realm = %s
+        AND realm = '%s'
     ]], self.realm )
     logger:debug( fixMissingDepartedTimes )
 
@@ -84,14 +84,14 @@ function storage:PrepareStatements()
     local newUser = "INSERT IGNORE INTO users (steam_id) VALUES(?)"
 
     local newSession = string.format( [[
-        INSERT INTO sessions (user_id, joined, departed, duration, realm) VALUES(?, ?, ?, ?, %s)
+        INSERT INTO sessions (user_id, joined, departed, duration, realm) VALUES(?, ?, ?, ?, '%s')
     ]], realm )
 
     local totalTime = string.format( [[
         SELECT SUM(duration)
         FROM sessions
         WHERE user_id = ?
-        AND realm = %s
+        AND realm = '%s'
     ]], realm )
 
     self:AddPreparedStatement( "newUser", newUser )
@@ -153,13 +153,15 @@ function storage:BuildSessionUpdate( data, id )
     local updateSection = "UPDATE sessions "
     local setSection = "SET "
     local whereSection = string.format(
-        "WHERE id = %s AND realm = %s",
+        "WHERE id = %s AND realm = '%s'",
         id, self.realm
     )
 
     -- TODO: Have a safeguard here for invalid keys?
     local count = table.Count( data )
     local idx = 1
+
+    -- FIXME: This will break because we pass strings/ints interchangeably, but strings need quotes around them
     for k, v in pairs( data ) do
         local newSet = k .. " = " .. v
         
@@ -180,7 +182,7 @@ function storage:BuildSessionUpdate( data, id )
     logger:info( "Created sessions update query!" )
     logger:info( query )
 
-    return query
+    return self.database:escape( query )
 end
 
 --[ API Begins Here ]--
