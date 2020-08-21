@@ -12,7 +12,7 @@ function storage:InitTransaction()
     local transaction = self.database:createTransaction()
 
     transaction.onError = function( _, err )
-        self.Logger:error( err )
+        logger:error( err )
     end
 
     return transaction
