@@ -73,7 +73,7 @@ function storage:AddPreparedStatement( name, query )
         logger:error( err, sql )
     end
 
-    self.preparedStatements[name] = statement
+    self.preparedQueries[name] = statement
 end
 
 function storage:PrepareStatements()
@@ -100,7 +100,7 @@ function storage:PrepareStatements()
 end
 
 function storage:Prepare( statementName, onSuccess, ... )
-    local query = self.preparedStatements[statementName]
+    local query = self.preparedQueries[statementName]
     query:clearParameters()
 
     for k, v in pairs( { ... } ) do
