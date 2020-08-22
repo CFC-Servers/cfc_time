@@ -84,7 +84,7 @@ function storage:PrepareStatements()
     local newUser = "INSERT IGNORE INTO users (steam_id) VALUES(?)"
 
     local newSession = string.format( [[
-        INSERT INTO sessions (user_id, joined, departed, duration, realm) VALUES(?, ?, ?, ?, '%s')
+        INSERT INTO sessions (user_id, joined, departed, duration, realm) VALUES(?, ?, ?, ?, '%s'); SELECT LAST_INSERT_ID()
     ]], realm )
 
     local totalTime = string.format( [[
@@ -94,19 +94,9 @@ function storage:PrepareStatements()
         AND realm = '%s'
     ]], realm )
 
-    local latestSession = string.format( [[
-        SELECT *
-        FROM sessions
-        WHERE user_id = ?
-        AND realm = '%s'
-        ORDER BY joined DESC
-        LIMIT 1
-    ]], realm )
-
     self:AddPreparedStatement( "newUser", newUser )
     self:AddPreparedStatement( "newSession", newSession )
     self:AddPreparedStatement( "totalTime", totalTime )
-    self:AddPreparedStatement( "latestSession", latestSession )
 end
 
 function storage:Prepare( statementName, onSuccess, ... )
@@ -240,17 +230,16 @@ function storage:PlayerInit( steamId, sessionStart, callback )
     local newUser = self:Prepare( "newUser", nil, steamId )
     local newSession = self:Prepare( "newSession", nil, steamId, sessionStart, nil, 0 )
     local totalTime = self:Prepare( "totalTime", nil, steamId )
-    local sessionData = self:Prepare( "latestSession", nil, steamId )
 
     transaction:addQuery( newUser )
     transaction:addQuery( newSession )
     transaction:addQuery( totalTime )
-    transaction:addQuery( sessionData )
 
     transaction.onSuccess = function( t )
         logger:info( "PlayerInit transaction successful!" )
         local totalTimeResult = totalTime:getData()[1]["SUM(duration)"]
-        local sessionId = sessionData:getData()[1]["id"]
+        logger:debug( table.ToString( newSession:GetData(), nil, true ) )
+        local sessionId = newSession:getData()[1]["id"]
 
         local response = {
             totalTime = totalTimeResult,

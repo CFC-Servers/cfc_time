@@ -6,20 +6,20 @@ local SQL_NULL = {}
 local function escapeArg( arg )
     if arg == SQL_NULL then
         return "NULL"
-    elseif type(arg) == "number" then
+    elseif type( arg ) == "number" then
         return arg
     else
-        return sql.SQLStr(arg)
+        return sql.SQLStr( arg )
     end
 end
 
 local function queryFormat( query, ... )
     local args = {}
-    for i, arg in ipairs{...} do
+    for i, arg in ipairs{ ... } do
         args[i] = escapeArg( arg )
     end
 
-    query = string.format( query, unpack(args) )
+    query = string.format( query, unpack( args ) )
     return sql.Query( query )
 end
 
@@ -36,7 +36,7 @@ local function buildSessionUpdate( id, data )
         query = query .. k .. " = " .. escapeArg( v )
     end
 
-    return query .. string.format(" WHERE id=%s AND realm=%s", escapeArg( id ), escapeArg( 'cfc3' ) )
+    return query .. string.format( " WHERE id=%s", escapeArg( id ) )
 end
 
 function storage:CreateUsersTable()
@@ -106,7 +106,7 @@ end
 
 function storage:UpdateBatch( batchData )
     if not batchData then return end
-    if table.Count( batchData ) == 0 then return end
+    if table.IsEmpty( batchData ) then return end
 
     sql.Begin()
 
@@ -126,6 +126,7 @@ end
 
 function storage:CreateSession( callback, steamId, sessionStart, sessionEnd, duration )
     local newSession = storage:CreateSession( steamId, sessionStart, sessionEnd, duration )
+
     callback( newSession )
 end
 
