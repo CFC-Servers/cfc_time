@@ -75,19 +75,17 @@ function ctime:initPlayer( ply )
     local steamId = ply:SteamID64()
 
     storage:PlayerInit( steamId, now, function( data )
-        PrintTable( data )
         local initialTime = data.totalTime
         local sessionId = data.sessionId
 
         ctime.sessions[steamId] = sessionId
         ctime.initialTimes[steamId] = initialTime
 
-        logger:debug( "Player " .. ply:GetName() .. " has initial time of " .. tostring(initialTime) .. " at " .. now )
+        logger:debug( "Player " .. ply:GetName() .. " has initial time of " .. tostring( initialTime ) .. " at " .. now )
 
         self.pendingUpdates[steamId] = {
             joined = now
         }
-
 
         hook.Run( "CFC_Time_PlayerInit", ply, initialTime, now )
     end )
