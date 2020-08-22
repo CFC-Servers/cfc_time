@@ -18,11 +18,11 @@ function storage:InitTransaction()
     return transaction
 end
 
-function storage:InitQuery( sql )
-    local query = self.database:query( sql )
+function storage:InitQuery( rawQuery )
+    local query = self.database:query( rawQuery )
 
-    query.onError = function( _, ... )
-        logger:error( ... )
+    query.onError = function( _, err, errQuery )
+        logger:error( err, errQuery )
     end
 
     return query
@@ -69,8 +69,8 @@ end
 function storage:AddPreparedStatement( name, query )
     local statement = self.database:prepare( query )
 
-    statement.onError = function( _, err, sql )
-        logger:error( err, sql )
+    statement.onError = function( _, err, errQuery )
+        logger:error( err, errQuery )
     end
 
     self.preparedQueries[name] = statement
