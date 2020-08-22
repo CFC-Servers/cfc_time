@@ -43,7 +43,7 @@ if SERVER then
         local sessionStart = lastvisit - totaltime
         local sessionEnd = lastvisit
 
-        CFCTime.storage:CreateSession( nil, steamId, sessionStart, sessionEnd, totaltime)
+        CFCTime.Storage:CreateSession( nil, steamId, sessionStart, sessionEnd, totaltime)
     end
 
     hook.Add( "CFC_Time_PlayerInit", "CFC_Time_UtimeCompat", function( ply, initialTime, currentTime )
