@@ -163,8 +163,7 @@ function storage:BuildSessionUpdate( data, id )
     local updateSection = "UPDATE sessions "
     local setSection = "SET "
     local whereSection = string.format(
-        "WHERE id = %s AND realm = '%s'",
-        id, self.realm
+        "WHERE id = %s", id
     )
 
     -- TODO: Have a safeguard here for invalid keys?
@@ -190,7 +189,7 @@ function storage:BuildSessionUpdate( data, id )
     local query = updateSection .. setSection .. whereSection
 
     logger:info( "Created sessions update query!" )
-    logger:info( query )
+    logger:info( self.database:escape( query ) )
 
     return self.database:escape( query )
 end
