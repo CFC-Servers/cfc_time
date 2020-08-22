@@ -24,7 +24,6 @@ function ctime:updateTimes()
 
         local joined = data.joined
         local departed = data.departed
-        local initialTime = ctime.initialTimes[steamId]
 
         if departed and departed < self.lastUpdate then
             self.pendingUpdates[steamId] = nil
@@ -39,10 +38,7 @@ function ctime:updateTimes()
         end
 
         if isValid then
-            local newTime = initialTime + sessionTime
-
-            data.duration = newTime
-            self.pendingUpdates[steamId].duration = newTime
+            data.duration = sessionTime
 
             local sessionId = self.sessions[steamId]
             batch[sessionId] = data
