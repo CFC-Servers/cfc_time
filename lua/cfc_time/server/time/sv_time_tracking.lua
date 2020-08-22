@@ -32,7 +32,7 @@ function ctime:updateTimes()
             isValid = false
         end
 
-        local sessionTime = now - joined
+        local sessionTime = ( departed or now ) - joined
         if sessionTime <= 0 then
             isValid = false
         end
