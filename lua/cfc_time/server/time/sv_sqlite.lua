@@ -133,7 +133,7 @@ function storage:PlayerInit( steamId, sessionStart, callback )
     logger:info( "Receiving PlayerInit call for: " .. tostring( steamId ) )
     sql.Begin()
 
-    storage:NewUser( steamId ) )
+    storage:NewUser( steamId )
     storage:NewSession( steamId, sessionStart, SQL_NULL, 0 )
     -- TODO get total time and session data
     -- TODO pass data to callback
