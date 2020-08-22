@@ -7,7 +7,7 @@ local function escapeArg( arg )
     if arg == SQL_NULL then
         return "NULL"
     elseif type(arg) == "number" then
-        return = arg
+        return arg
     else
         return sql.SQLStr(arg)
     end
