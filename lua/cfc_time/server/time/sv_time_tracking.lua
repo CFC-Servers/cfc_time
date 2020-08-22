@@ -13,6 +13,7 @@ ctime.lastUpdate = getNow()
 
 -- steamID65 = database session ID
 ctime.sessions = {}
+ctime.initialTimes = {}
 
 function ctime:updateTimes()
     local batch = {}
@@ -23,11 +24,12 @@ function ctime:updateTimes()
 
         local joined = data.joined
         local departed = data.departed
-        local initialTime = data.initialTime
+        local initialTime = ctime.initialTimes[steamId]
 
         if departed and departed < self.lastUpdate then
             self.pendingUpdates[steamId] = nil
             self.sessions[steamId] = nil
+            ctime.initialTimes[steamId] = nil
             isValid = false
         end
 
@@ -41,9 +43,6 @@ function ctime:updateTimes()
 
             data.duration = newTime
             self.pendingUpdates[steamId].duration = newTime
-
-            -- TODO: Find a better place to store the initial time so we don't have to do this
-            data.initialTime = nil
 
             local sessionId = self.sessions[steamId]
             batch[sessionId] = data
@@ -85,14 +84,14 @@ function ctime:initPlayer( ply )
         local sessionId = data.sessionId
 
         ctime.sessions[steamId] = sessionId
+        ctime.initialTimes[steamId] = initialTime
 
         logger:debug( "Player " .. ply:GetName() .. " has initial time of " .. tostring(initialTime) .. " at " .. now )
 
         self.pendingUpdates[steamId] = {
-            joined = now,
-            -- TODO: Find a better way to store initialTime
-            initialTime = initialTime
+            joined = now
         }
+
 
         hook.Run( "CFC_Time_PlayerInit", ply, initialTime, now )
     end )
