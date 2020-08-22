@@ -174,7 +174,7 @@ function storage:BuildSessionUpdate( data, id )
     -- FIXME: This will break because we pass strings/ints interchangeably, but strings need quotes around them
     for k, v in pairs( data ) do
         local newSet = k .. " = " .. v
-        
+
         if idx ~= count then
             -- Add a comma if it isn't the last one
             newSet = newSet .. ","
@@ -182,7 +182,7 @@ function storage:BuildSessionUpdate( data, id )
             -- Add a space if it's the last one
             newSet = newSet .. " "
         end
-        
+
         setSection = setSection .. newSet
         idx = idx + 1
     end
@@ -248,14 +248,14 @@ function storage:PlayerInit( steamId, sessionStart, callback )
     transaction:addQuery( totalTime )
     transaction:addQuery( sessionData )
 
-    transaction.onSuccess = function( q, data )
-        print( q, data )
+    transaction.onSuccess = function( t )
         logger:info( "PlayerInit transaction successful!" )
-        if data then PrintTable( data ) end
+        local totalTimeResult = totalTime:getData()[1]["SUM(duration)"]
+        local sessionId = sessionData:getData()[1]["id"]
 
         local response = {
-            totalTime = data.theResultOfTotalTime,
-            sessionId = data.theSessionIdFromData
+            totalTime = totalTimeResult,
+            sessionId = sessionId
         }
 
         callback( response )
