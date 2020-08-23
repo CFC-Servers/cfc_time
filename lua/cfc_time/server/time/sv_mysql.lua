@@ -84,7 +84,7 @@ function storage:PrepareStatements()
     local newUser = "INSERT IGNORE INTO users (steam_id) VALUES(?)"
 
     local newSession = string.format( [[
-        INSERT INTO sessions (user_id, joined, departed, duration, realm) VALUES(?, ?, ?, ?, '%s'); SELECT LAST_INSERT_ID()
+        INSERT INTO sessions (user_id, joined, departed, duration, realm) VALUES(?, ?, ?, ?, '%s')
     ]], realm )
 
     local totalTime = string.format( [[
@@ -94,9 +94,14 @@ function storage:PrepareStatements()
         AND realm = '%s'
     ]], realm )
 
+    local latestSessionId = string.format( [[
+        SELECT LAST_INSERT_ID()
+    ]], realm )
+
     self:AddPreparedStatement( "newUser", newUser )
     self:AddPreparedStatement( "newSession", newSession )
     self:AddPreparedStatement( "totalTime", totalTime )
+    self:AddPreparedStatement( "latestSessionId", latestSessionId )
 end
 
 function storage:Prepare( statementName, onSuccess, ... )
@@ -230,20 +235,23 @@ function storage:PlayerInit( steamId, sessionStart, callback )
     local newUser = self:Prepare( "newUser", nil, steamId )
     local newSession = self:Prepare( "newSession", nil, steamId, sessionStart, nil, 0 )
     local totalTime = self:Prepare( "totalTime", nil, steamId )
+    local sessionId = self:Prepare( "latestSessionId", nil )
 
     transaction:addQuery( newUser )
     transaction:addQuery( newSession )
     transaction:addQuery( totalTime )
+    transaction:addQuery( sessionId )
 
     transaction.onSuccess = function( t )
         logger:info( "PlayerInit transaction successful!" )
         local totalTimeResult = totalTime:getData()[1]["SUM(duration)"]
-        logger:debug( table.ToString( newSession:GetData(), nil, true ) )
-        local sessionId = newSession:getData()[1]["id"]
+
+        logger:debug( table.ToString( sessionId:getData(), nil, true ) )
+        local sessionIdResult = sessionId:getData()[1]["id"]
 
         local response = {
             totalTime = totalTimeResult,
-            sessionId = sessionId
+            sessionId = sessionIdResult
         }
 
         callback( response )
