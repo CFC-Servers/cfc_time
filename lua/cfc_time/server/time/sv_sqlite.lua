@@ -72,6 +72,7 @@ end
 
 hook.Add( "PostGamemodeLoaded", "CFC_Time_DBInit", function()
     logger:info( "Gamemoded loaded, beginning database init..." )
+    storage:RunSessionCleanup()
     storage:SetupTables()
 end )
 
