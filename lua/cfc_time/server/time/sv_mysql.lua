@@ -155,7 +155,7 @@ hook.Add( "PostGamemodeLoaded", "CFC_Time_DBInit", function()
 end )
 
 -- TODO: Find a better/safer way to do this
-function storage:BuildSessionUpdate( data, id )
+function storage:BuildSessionUpdate( id, data )
     local updateSection = "UPDATE sessions "
     local setSection = "SET "
     local whereSection = string.format(
@@ -199,7 +199,7 @@ function storage:UpdateBatch( batchData )
     local transaction = storage:InitTransaction()
 
     for sessionId, data in pairs( batchData ) do
-        local updateStr = self:BuildSessionUpdate( data, sessionId )
+        local updateStr = self:BuildSessionUpdate( sessionId, data )
         local query = self.database:query( updateStr )
 
         transaction:addQuery( query )
