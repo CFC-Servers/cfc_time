@@ -130,7 +130,7 @@ end
 function storage:GetTotalTime( steamId, callback )
     local data = storage:QueryTotalTime( steamId )
 
-    callback( data )
+    callback( data[1]["SUM(duration)"] )
 end
 
 function storage:CreateSession( callback, steamId, sessionStart, sessionEnd, duration )

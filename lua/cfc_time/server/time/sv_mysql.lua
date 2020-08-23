@@ -209,7 +209,7 @@ end
 
 function storage:GetTotalTime( steamId, callback )
     local onSuccess = function( _, data )
-        callback( data )
+        callback( data[1]["SUM(duration)"] )
     end
 
     local query = self:Prepare( "totalTime", onSuccess, steamId )
