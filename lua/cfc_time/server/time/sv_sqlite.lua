@@ -36,12 +36,12 @@ local function buildSessionUpdate( id, data )
         query = query .. k .. " = " .. escapeArg( v )
     end
 
-    return query .. string.format( " WHERE rowid=%s", escapeArg( id ) )
+    return query .. string.format( " WHERE id=%s", escapeArg( id ) )
 end
 
 function storage:CreateUsersTable()
     sql.Query( [[
-        CREATE TABLE IF NOT EXISTS cfc_timeusers(
+        CREATE TABLE IF NOT EXISTS cfc_time_users(
             steam_id TEXT PRIMARY KEY
         )
     ]] )
@@ -50,6 +50,7 @@ end
 function storage:CreateSessionsTable()
     sql.Query( [[
         CREATE TABLE IF NOT EXISTS cfc_time_sessions(
+            id       INTEGER       PRIMARY KEY,
             realm    TEXT          NOT NULL,
             user_id  TEXT          NOT NULL,
             joined   INT           NOT NULL,
@@ -60,6 +61,20 @@ function storage:CreateSessionsTable()
     ]] )
 end
 
+function storage:SetupTables()
+    sql.Begin()
+
+    storage:CreateUsersTable()
+    storage:CreateSessionsTable()
+
+    sql.Commit()
+end
+
+hook.Add( "PostGamemodeLoaded", "CFC_Time_DBInit", function()
+    logger:info( "Gamemoded loaded, beginning database init..." )
+    storage:SetupTables()
+end )
+
 function storage:RunSessionCleanup()
     queryFormat( [[
         UPDATE cfc_time_sessions
@@ -69,13 +84,13 @@ function storage:RunSessionCleanup()
 end
 
 function storage:QueryCreateSession( steamId, sessionStart, sessionEnd, duration )
-    queryFormat( [[
+    return queryFormat( [[
         INSERT INTO cfc_time_sessions (user_id, joined, departed, duration, realm) VALUES(%s, %s, %s, %s, %s)
     ]], steamId, sessionStart, sessionEnd, duration, self.realm )
 end
 
 function storage:QueryCreateUser( steamId )
-    queryFormat(
+    return queryFormat(
         "INSERT INTO cfc_time_users (steam_id) VALUES(%s) ON CONFLICT (steam_id) DO NOTHING",
         steamId
     )
@@ -84,7 +99,7 @@ end
 function storage:QueryTotalTime( steamId )
     return queryFormat( [[
         SELECT SUM(duration)
-        FROM sessions
+        FROM cfc_time_sessions
         WHERE user_id = %s
         AND realm = %s
     ]], steamId, self.realm )
@@ -129,10 +144,11 @@ function storage:PlayerInit( steamId, sessionStart, callback )
 
     sql.Begin()
 
-    storage:QueryCreateSession( steamId )
-    storage:QueryNewSession( steamId, sessionStart, SQL_NULL, 0 )
-    local totalTime = storage:QueryTotalTime( steamId )[1]["SUM(duration)"]
-    local sessionId = storage:QueryLatestSessionId()[1]["last_insert_rowid()"]
+    storage:QueryCreateUser( steamId )
+    storage:QueryCreateSession( steamId, sessionStart, SQL_NULL, 0 )
+
+    local totalTime = tonumber( storage:QueryTotalTime( steamId )[1]["SUM(duration)"] )
+    local sessionId = tonumber( storage:QueryLatestSessionId()[1]["last_insert_rowid()"] )
 
     sql.Commit()
 
