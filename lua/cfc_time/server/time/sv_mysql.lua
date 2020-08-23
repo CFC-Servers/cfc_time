@@ -94,14 +94,25 @@ function storage:PrepareStatements()
         AND realm = '%s'
     ]], realm )
 
-    local latestSessionId = string.format( [[
+    local latestSessionId = [[
         SELECT LAST_INSERT_ID()
-    ]], realm )
+    ]]
+
+    local sessionUpdate = [[
+        UPDATE sessions
+        SET
+          joined = IFNULL(?, joined),
+          departed = IFNULL(?, departed),
+          duration = IFNULL(?, duration)
+        WHERE
+          id = ?
+    ]]
 
     self:AddPreparedStatement( "newUser", newUser )
     self:AddPreparedStatement( "newSession", newSession )
     self:AddPreparedStatement( "totalTime", totalTime )
     self:AddPreparedStatement( "latestSessionId", latestSessionId )
+    self:AddPreparedStatement( "sessionUpdate", sessionUpdate )
 end
 
 function storage:Prepare( statementName, onSuccess, ... )
@@ -150,45 +161,8 @@ end
 
 hook.Add( "PostGamemodeLoaded", "CFC_Time_DBInit", function()
     logger:info( "Gamemoded loaded, beginning database init..." )
-    storage:SessionCleanupQuery()
     storage.database:connect()
 end )
-
--- TODO: Find a better/safer way to do this
-function storage:BuildSessionUpdate( id, data )
-    local updateSection = "UPDATE sessions "
-    local setSection = "SET "
-    local whereSection = string.format(
-        "WHERE id = %s", id
-    )
-
-    -- TODO: Have a safeguard here for invalid keys?
-    local count = table.Count( data )
-    local idx = 1
-
-    -- FIXME: This will break because we pass strings/ints interchangeably, but strings need quotes around them
-    for k, v in pairs( data ) do
-        local newSet = k .. " = " .. v
-
-        if idx ~= count then
-            -- Add a comma if it isn't the last one
-            newSet = newSet .. ","
-        else
-            -- Add a space if it's the last one
-            newSet = newSet .. " "
-        end
-
-        setSection = setSection .. newSet
-        idx = idx + 1
-    end
-
-    local query = updateSection .. setSection .. whereSection
-
-    logger:info( "Created sessions update query!" )
-    logger:info( self.database:escape( query ) )
-
-    return self.database:escape( query )
-end
 
 --[ API Begins Here ]--
 
@@ -199,8 +173,14 @@ function storage:UpdateBatch( batchData )
     local transaction = storage:InitTransaction()
 
     for sessionId, data in pairs( batchData ) do
-        local updateStr = self:BuildSessionUpdate( sessionId, data )
-        local query = self.database:query( updateStr )
+        local query = self:Prepare(
+            "sessionUpdate",
+            nil,
+            data.joined,
+            data.departed,
+            data.duration,
+            sessionId
+        )
 
         transaction:addQuery( query )
     end
@@ -244,7 +224,7 @@ function storage:PlayerInit( steamId, sessionStart, callback )
     transaction:addQuery( sessionId )
 
     transaction.onSuccess = function( t )
-        logger:info( "PlayerInit transaction successful!" )
+        logger:debug( "PlayerInit transaction successful!" )
         local totalTimeResult = totalTime:getData()[1]["SUM(duration)"]
         local sessionIdResult = sessionId:getData()[1]["LAST_INSERT_ID()"]
 
