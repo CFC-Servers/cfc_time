@@ -137,7 +137,7 @@ end
 function storage:CreateSession( callback, steamId, sessionStart, sessionEnd, duration )
     local newSession = storage:QueryCreateSession( steamId, sessionStart, sessionEnd, duration )
 
-    callback( newSession )
+    if callback then callback( newSession ) end
 end
 
 function storage:PlayerInit( steamId, sessionStart, callback )
