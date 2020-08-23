@@ -18,16 +18,16 @@ function plyMeta:SetUTimeStart( time )
 end
 
 function plyMeta:GetUTimeSessionTime()
-    return CurTime() - self:GetUTimeStart()
+    return os.time() - self:GetUTimeStart()
 end
 
 function plyMeta:GetUTimeTotalTime()
-    return self:GetUTime() + CurTime() - self:GetUTimeStart()
+    return self:GetUTime() + os.time() - self:GetUTimeStart()
 end
 
 if SERVER then
     CFCTime.utimeCompat = {}
-    
+
     -- TODO: When does this happen? How do we handle a situation where this happens before the player has been created in our storage?
     function CFCTime.utimeCompat:MigratePlayerFromUtime( ply )
         local steamId = ply:SteamID64()
