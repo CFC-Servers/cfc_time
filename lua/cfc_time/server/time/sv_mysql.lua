@@ -193,7 +193,7 @@ end
 
 function storage:UpdateBatch( batchData )
     if not batchData then return end
-    if table.Count( batchData ) == 0 then return end
+    if table.IsEmpty( batchData ) then return end
 
     local transaction = storage:InitTransaction()
 
@@ -245,9 +245,7 @@ function storage:PlayerInit( steamId, sessionStart, callback )
     transaction.onSuccess = function( t )
         logger:info( "PlayerInit transaction successful!" )
         local totalTimeResult = totalTime:getData()[1]["SUM(duration)"]
-
-        logger:debug( table.ToString( sessionId:getData(), nil, true ) )
-        local sessionIdResult = sessionId:getData()[1]["id"]
+        local sessionIdResult = sessionId:getData()[1]["LAST_INSERT_ID()"]
 
         local response = {
             totalTime = totalTimeResult,
