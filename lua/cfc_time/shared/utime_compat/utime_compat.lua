@@ -1,4 +1,3 @@
-
 local plyMeta = FindMetaTable( "Player" )
 
 function plyMeta:GetUTime()
@@ -28,7 +27,6 @@ end
 if SERVER then
     CFCTime.utimeCompat = {}
 
-    -- TODO: When does this happen? How do we handle a situation where this happens before the player has been created in our storage?
     function CFCTime.utimeCompat:MigratePlayerFromUtime( ply )
         local steamId = ply:SteamID64()
         local uniqueId = ply:UniqueID()
@@ -44,11 +42,17 @@ if SERVER then
         local sessionEnd = lastvisit
 
         CFCTime.Storage:CreateSession( nil, steamId, sessionStart, sessionEnd, totaltime )
+
+        CFCTime.Logger:info( "Player " .. ply:GetName() .. "[" .. steamId .. "] migrated from UTime with existing time of " .. totalTime )
+
+        return totalTime
     end
 
-    hook.Add( "CFC_Time_PlayerInit", "CFC_Time_UtimeCompat", function( ply, initialTime, currentTime )
-        CFCTime.utimeCompat:MigratePlayerFromUtime( ply )
+    hook.Add( "CFC_Time_NewPlayer", "CFC_Time_UtimeCompat", function( ply )
+        return CFCTime.utimeCompat:MigratePlayerFromUtime( ply )
+    end )
 
+    hook.Add( "CFC_Time_PlayerInit", "CFC_Time_UtimeCompat", function( ply, initialTime, currentTime )
         ply:SetUTime( initialTime )
         ply:SetUTimeStart( currentTime )
     end )

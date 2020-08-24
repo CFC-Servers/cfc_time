@@ -81,6 +81,8 @@ function storage:PrepareStatements()
 
     local realm = self.realm
 
+    local userExists = "SELECT * FROM users WHERE steam_id = ?"
+
     local newUser = "INSERT IGNORE INTO users (steam_id) VALUES(?)"
 
     local newSession = string.format( [[
@@ -108,6 +110,7 @@ function storage:PrepareStatements()
           id = ?
     ]]
 
+    self:AddPreparedStatement( "userExists", userExists )
     self:AddPreparedStatement( "newUser", newUser )
     self:AddPreparedStatement( "newSession", newSession )
     self:AddPreparedStatement( "totalTime", totalTime )
@@ -203,21 +206,25 @@ function storage:CreateSession( callback, steamId, sessionStart, sessionEnd, dur
     newSession:start()
 end
 
--- Takes a steamid, a session start timestamp, and a callback, then:
+-- Takes a player, a session start timestamp, and a callback, then:
 --  - Creates a new user (if needed)
 --  - Creates a new session with given values
 -- Calls callback with a structure containing:
 --  - sessionId (the id of the newly created session)
 --  - totalTime (the calculated total playtime)
-function storage:PlayerInit( steamId, sessionStart, callback )
+function storage:PlayerInit( ply, sessionStart, callback )
+    local steamId = ply:SteamID64()
+
     logger:info( "Receiving PlayerInit call for: " .. tostring( steamId ) )
     local transaction = storage:InitTransaction()
 
+    local userExists = self:Prepare( "userExists", nil, steamId )
     local newUser = self:Prepare( "newUser", nil, steamId )
     local newSession = self:Prepare( "newSession", nil, steamId, sessionStart, nil, 0 )
     local totalTime = self:Prepare( "totalTime", nil, steamId )
     local sessionId = self:Prepare( "latestSessionId", nil )
 
+    transaction:addQuery( userExists )
     transaction:addQuery( newUser )
     transaction:addQuery( newSession )
     transaction:addQuery( totalTime )
@@ -225,8 +232,15 @@ function storage:PlayerInit( steamId, sessionStart, callback )
 
     transaction.onSuccess = function( t )
         logger:debug( "PlayerInit transaction successful!" )
+        local userExisted = #userExists:getData() > 0
+        print( userExisted )
         local totalTimeResult = totalTime:getData()[1]["SUM(duration)"]
         local sessionIdResult = sessionId:getData()[1]["LAST_INSERT_ID()"]
+
+        if not userExisted then
+            local newInitialTime = hook.Run( "CFC_Time_NewPlayer", ply )
+            totalTimeResult = newInitialTime or totalTimeResult
+        end
 
         local response = {
             totalTime = totalTimeResult,
