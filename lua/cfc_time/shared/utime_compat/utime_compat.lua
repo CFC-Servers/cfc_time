@@ -1,5 +1,6 @@
 local plyMeta = FindMetaTable( "Player" )
 
+--[[
 function plyMeta:GetUTime()
     return self:GetNWFloat( "TotalUTime" )
 end
@@ -23,6 +24,7 @@ end
 function plyMeta:GetUTimeTotalTime()
     return self:GetUTime() + os.time() - self:GetUTimeStart()
 end
+--]]
 
 if SERVER then
     CFCTime.utimeCompat = {}
