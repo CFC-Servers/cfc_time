@@ -218,12 +218,13 @@ function storage:PlayerInit( ply, sessionStart, callback )
     logger:info( "Receiving PlayerInit call for: " .. tostring( steamId ) )
     local transaction = storage:InitTransaction()
 
-    local userExisted
+    local userExists = self:Prepare( "userExists", nil, steamId )
     local newUser = self:Prepare( "newUser", nil, steamId )
     local newSession = self:Prepare( "newSession", nil, steamId, sessionStart, nil, 0 )
     local totalTime = self:Prepare( "totalTime", nil, steamId )
     local sessionId = self:Prepare( "latestSessionId", nil )
 
+    transaction:addQuery( userExists )
     transaction:addQuery( newUser )
     transaction:addQuery( newSession )
     transaction:addQuery( totalTime )
@@ -231,11 +232,19 @@ function storage:PlayerInit( ply, sessionStart, callback )
 
     transaction.onSuccess = function( t )
         logger:debug( "PlayerInit transaction successful!" )
+        local userExisted = not table.IsEmpty( userExists:getData() )
         local totalTimeResult = totalTime:getData()[1]["SUM(duration)"]
         local sessionIdResult = sessionId:getData()[1]["LAST_INSERT_ID()"]
 
+        logger:debug( "Sum of existing session durations: " .. totalTimeResult or "nil" )
+
         if not userExisted then
+            logger:debug( "User isn't in DB - running NewPlayer hook..." )
+
             local newInitialTime = hook.Run( "CFC_Time_NewPlayer", ply )
+
+            logger:debug( "Received new initial time from hook: " .. newInitialTime or 0 )
+
             totalTimeResult = newInitialTime or totalTimeResult
         end
 
@@ -247,11 +256,5 @@ function storage:PlayerInit( ply, sessionStart, callback )
         callback( response )
     end
 
-    local userExists = self:Prepare( "userExists", nil, steamId )
-    userExists.onSuccess = function( q, data )
-        userExisted = not table.IsEmpty( data )
-        transaction:start()
-    end
-
-    userExists:start()
+    transaction:start()
 end
