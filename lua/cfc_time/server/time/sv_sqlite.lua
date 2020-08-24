@@ -154,7 +154,7 @@ function storage:PlayerInit( ply, sessionStart, callback )
 
     sql.Begin()
 
-    local userExisted = #storage:QueryGetUser( steamId ) > 0
+    local userExisted = storage:QueryGetUser( steamId ) ~= nil
     storage:QueryCreateUser( steamId )
     storage:QueryCreateSession( steamId, sessionStart, SQL_NULL, 0 )
 
