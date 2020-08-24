@@ -218,13 +218,12 @@ function storage:PlayerInit( ply, sessionStart, callback )
     logger:info( "Receiving PlayerInit call for: " .. tostring( steamId ) )
     local transaction = storage:InitTransaction()
 
-    local userExists = self:Prepare( "userExists", nil, steamId )
+    local userExisted
     local newUser = self:Prepare( "newUser", nil, steamId )
     local newSession = self:Prepare( "newSession", nil, steamId, sessionStart, nil, 0 )
     local totalTime = self:Prepare( "totalTime", nil, steamId )
     local sessionId = self:Prepare( "latestSessionId", nil )
 
-    transaction:addQuery( userExists )
     transaction:addQuery( newUser )
     transaction:addQuery( newSession )
     transaction:addQuery( totalTime )
@@ -232,7 +231,6 @@ function storage:PlayerInit( ply, sessionStart, callback )
 
     transaction.onSuccess = function( t )
         logger:debug( "PlayerInit transaction successful!" )
-        local userExisted = not table.IsEmpty( userExists:getData() )
         local totalTimeResult = totalTime:getData()[1]["SUM(duration)"]
         local sessionIdResult = sessionId:getData()[1]["LAST_INSERT_ID()"]
 
@@ -249,5 +247,11 @@ function storage:PlayerInit( ply, sessionStart, callback )
         callback( response )
     end
 
-    transaction:start()
+    local userExists = self:Prepare( "userExists", nil, steamId )
+    userExists.onSuccess = function( q, data )
+        userExisted = not table.IsEmpty( data )
+        transaction:start()
+    end
+
+    userExists:start()
 end
