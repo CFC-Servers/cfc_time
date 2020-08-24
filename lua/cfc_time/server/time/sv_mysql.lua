@@ -81,7 +81,12 @@ function storage:PrepareStatements()
 
     local realm = self.realm
 
-    local userExists = "SELECT * FROM users WHERE steam_id = ? FOR UPDATE"
+    local userExists = [[
+        SELECT *
+        FROM users
+        WHERE steam_id = ?
+        FOR UPDATE"
+    ]]
 
     local newUser = "INSERT IGNORE INTO users (steam_id) VALUES(?)"
 
@@ -94,10 +99,12 @@ function storage:PrepareStatements()
         FROM sessions
         WHERE user_id = ?
         AND realm = '%s'
+        FOR UPDATE
     ]], realm )
 
     local latestSessionId = [[
         SELECT LAST_INSERT_ID()
+        FOR UPDATE
     ]]
 
     local sessionUpdate = [[
