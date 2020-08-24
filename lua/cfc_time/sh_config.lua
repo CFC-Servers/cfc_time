@@ -13,17 +13,20 @@ config.values = {
     storageType = "sqlite"
 }
 
+local function saveConfig( key )
+    file.Write( configFilename, util.TableToJSON( config.values, true ))
+end
+
 local function configInit()
     file.CreateDir("cfc_time")
     local data = file.Read( configFilename ) or ""
     local values = util.JSONToTable( data ) or {}
-
     table.Merge( config.values, values )
+
+    saveConfig()
 end
 
-local function saveConfig( key )
-    file.Write( configFilename, util.TableToJSON( config.values, true ))
-end
+
 
 function config.set( key, value )
     if not config.values[key] then return end
