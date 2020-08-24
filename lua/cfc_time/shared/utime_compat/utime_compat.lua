@@ -55,7 +55,7 @@ if SERVER then
     end )
 
     hook.Add( "CFC_Time_PlayerInit", "CFC_Time_UtimeCompat", function( ply, initialTime, currentTime )
-        ply:SetUTime( initialTime )
-        ply:SetUTimeStart( currentTime )
+        --ply:SetUTime( initialTime )
+        --ply:SetUTimeStart( currentTime )
     end )
 end
