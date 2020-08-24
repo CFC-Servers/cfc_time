@@ -85,7 +85,7 @@ function storage:PrepareStatements()
         SELECT *
         FROM users
         WHERE steam_id = ?
-        FOR UPDATE"
+        FOR UPDATE
     ]]
 
     local newUser = "INSERT IGNORE INTO users (steam_id) VALUES(?)"
