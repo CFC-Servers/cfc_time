@@ -1,6 +1,6 @@
-Config = {}
-
-local config = Config
+CFCTime.ctime = CFCTime.ctime or {}
+CFCTime.ctime.Config = {}
+local config = CFCTime.ctime.Config
 
 local configFilename = "cfc_time/config.json"
 
