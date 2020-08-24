@@ -90,6 +90,13 @@ function storage:QueryCreateSession( steamId, sessionStart, sessionEnd, duration
     ]], steamId, sessionStart, sessionEnd, duration, self.realm )
 end
 
+function storage:QueryGetUser( steamId )
+    return queryFormat(
+        "SELECT * FROM cfc_time_users WHERE steam_id = %s",
+        steamId
+    )
+end
+
 function storage:QueryCreateUser( steamId )
     return queryFormat(
         "INSERT INTO cfc_time_users (steam_id) VALUES(%s) ON CONFLICT (steam_id) DO NOTHING",
@@ -140,11 +147,14 @@ function storage:CreateSession( callback, steamId, sessionStart, sessionEnd, dur
     if callback then callback( newSession ) end
 end
 
-function storage:PlayerInit( steamId, sessionStart, callback )
+function storage:PlayerInit( ply, sessionStart, callback )
+    local steamId = ply:SteamID64()
+
     logger:info( "Receiving PlayerInit call for: " .. tostring( steamId ) )
 
     sql.Begin()
 
+    local userExisted = #storage:QueryGetUser( steamId ) > 0
     storage:QueryCreateUser( steamId )
     storage:QueryCreateSession( steamId, sessionStart, SQL_NULL, 0 )
 
@@ -152,6 +162,11 @@ function storage:PlayerInit( steamId, sessionStart, callback )
     local sessionId = tonumber( storage:QueryLatestSessionId()[1]["last_insert_rowid()"] )
 
     sql.Commit()
+
+    if not userExisted then
+        local newInitialTime = hook.Run( "CFC_Time_NewPlayer", ply )
+        totalTime = newInitialTime or totalTime
+    end
 
     local response = {
         totalTime = totalTime,
