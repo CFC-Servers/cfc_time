@@ -233,6 +233,8 @@ function storage:PlayerInit( ply, sessionStart, callback )
     transaction.onSuccess = function( t )
         logger:debug( "PlayerInit transaction successful!" )
         local userExisted = not table.IsEmpty( userExists:getData() )
+        -- FIXME This seems to be returning old values?
+        -- Leads to CFC_Time_NewPlayer being called for players that already exist in the cfc_time database if they join back within same server session
         print( userExisted )
         local totalTimeResult = totalTime:getData()[1]["SUM(duration)"]
         local sessionIdResult = sessionId:getData()[1]["LAST_INSERT_ID()"]
