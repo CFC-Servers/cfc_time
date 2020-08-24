@@ -232,7 +232,7 @@ function storage:PlayerInit( ply, sessionStart, callback )
 
     transaction.onSuccess = function( t )
         logger:debug( "PlayerInit transaction successful!" )
-        local userExisted = #userExists:getData() > 0
+        local userExisted = not table.IsEmpty( userExists:getData() )
         print( userExisted )
         local totalTimeResult = totalTime:getData()[1]["SUM(duration)"]
         local sessionIdResult = sessionId:getData()[1]["LAST_INSERT_ID()"]
