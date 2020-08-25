@@ -29,9 +29,11 @@ function storage:InitQuery( rawQuery )
 end
 
 function storage:CreateUsersQuery()
+    -- TODO: Find an elegant way to add an index on steam_id
     local createUsers = [[
         CREATE TABLE IF NOT EXISTS users(
-            steam_id VARCHAR(20) PRIMARY KEY
+            id       MEDIUMINT   UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+            steam_id VARCHAR(20) UNIQUE NOT NULL
         );
     ]]
 
@@ -41,7 +43,7 @@ end
 function storage:CreateSessionsQuery()
     local createSessions = [[
         CREATE TABLE IF NOT EXISTS sessions(
-            id       INT                  PRIMARY KEY AUTO_INCREMENT,
+            id       MEDIUMINT   UNSIGNED PRIMARY KEY AUTO_INCREMENT,
             realm    VARCHAR(10)          NOT NULL,
             user_id  VARCHAR(20)          NOT NULL,
             joined   INT         UNSIGNED NOT NULL,
@@ -81,13 +83,6 @@ function storage:PrepareStatements()
 
     local realm = self.realm
 
-    local userExists = [[
-        SELECT *
-        FROM users
-        WHERE steam_id = ?
-        FOR UPDATE
-    ]]
-
     local newUser = "INSERT IGNORE INTO users (steam_id) VALUES(?)"
 
     local newSession = string.format( [[
@@ -112,7 +107,6 @@ function storage:PrepareStatements()
           id = ?
     ]]
 
-    self:AddPreparedStatement( "userExists", userExists )
     self:AddPreparedStatement( "newUser", newUser )
     self:AddPreparedStatement( "newSession", newSession )
     self:AddPreparedStatement( "totalTime", totalTime )
@@ -219,15 +213,17 @@ function storage:PlayerInit( ply, sessionStart, callback )
     logger:info( "Receiving PlayerInit call for: " .. tostring( steamId ) )
     local transaction = storage:InitTransaction()
 
-    local userExisted
+    local newUser = self:Prepare( "newUser", nil, steamId )
     local newSession = self:Prepare( "newSession", nil, steamId, sessionStart, nil, 0 )
     local totalTime = self:Prepare( "totalTime", nil, steamId )
 
+    transaction:addQuery( newUser )
     transaction:addQuery( newSession )
     transaction:addQuery( totalTime )
 
     transaction.onSuccess = function()
         logger:debug( "PlayerInit transaction successful!" )
+        local userExisted = newUser:lastInsert() ~= 0
         local totalTimeResult = totalTime:getData()[1]["SUM(duration)"]
         local sessionIdResult = newSession:lastInsert()
 
@@ -251,20 +247,5 @@ function storage:PlayerInit( ply, sessionStart, callback )
         callback( response )
     end
 
-    local userExists = self:Prepare( "userExists", nil, steamId )
-
-    userExists.onSuccess = function( _, data )
-        userExisted = table.IsEmpty( data )
-
-        logger:debug( "User Exists query complete (result: " .. tostring( userExisted ) .. "), starting the rest of the transaction" )
-
-        if not userExisted then
-            local newUser = self:Prepare( "newUser", nil, steamId )
-            transaction:addQuery( newUser )
-        end
-
-        transaction:start()
-    end
-
-    userExists:start()
+    transaction:start()
 end
