@@ -102,11 +102,6 @@ function storage:PrepareStatements()
         FOR UPDATE
     ]], realm )
 
-    local latestSessionId = [[
-        SELECT LAST_INSERT_ID()
-        FOR UPDATE
-    ]]
-
     local sessionUpdate = [[
         UPDATE sessions
         SET
@@ -121,7 +116,6 @@ function storage:PrepareStatements()
     self:AddPreparedStatement( "newUser", newUser )
     self:AddPreparedStatement( "newSession", newSession )
     self:AddPreparedStatement( "totalTime", totalTime )
-    self:AddPreparedStatement( "latestSessionId", latestSessionId )
     self:AddPreparedStatement( "sessionUpdate", sessionUpdate )
 end
 
@@ -225,23 +219,17 @@ function storage:PlayerInit( ply, sessionStart, callback )
     logger:info( "Receiving PlayerInit call for: " .. tostring( steamId ) )
     local transaction = storage:InitTransaction()
 
-    local userExists = self:Prepare( "userExists", nil, steamId )
-    local newUser = self:Prepare( "newUser", nil, steamId )
+    local userExisted
     local newSession = self:Prepare( "newSession", nil, steamId, sessionStart, nil, 0 )
     local totalTime = self:Prepare( "totalTime", nil, steamId )
-    local sessionId = self:Prepare( "latestSessionId", nil )
 
-    transaction:addQuery( userExists )
-    transaction:addQuery( newUser )
     transaction:addQuery( newSession )
     transaction:addQuery( totalTime )
-    transaction:addQuery( sessionId )
 
-    transaction.onSuccess = function( t )
+    transaction.onSuccess = function()
         logger:debug( "PlayerInit transaction successful!" )
-        local userExisted = not table.IsEmpty( userExists:getData() )
         local totalTimeResult = totalTime:getData()[1]["SUM(duration)"]
-        local sessionIdResult = sessionId:getData()[1]["LAST_INSERT_ID()"]
+        local sessionIdResult = newSession:lastInsert()
 
         logger:debug( "Sum of existing session durations: " .. totalTimeResult or "nil" )
 
@@ -263,5 +251,20 @@ function storage:PlayerInit( ply, sessionStart, callback )
         callback( response )
     end
 
-    transaction:start()
+    local userExists = self:Prepare( "userExists", nil, steamId )
+
+    userExists.onSuccess = function( _, data )
+        userExisted = table.IsEmpty( data )
+
+        logger:debug( "User Exists query complete (result: " .. userExisted .. "), starting the rest of the transaction" )
+
+        if not userExisted then
+            local newUser = self:Prepare( "newUser", nil, steamId )
+            transaction:addQuery( newUser )
+        end
+
+        transaction:start()
+    end
+
+    userExists:start()
 end
