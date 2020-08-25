@@ -83,7 +83,7 @@ function storage:PrepareStatements()
 
     local realm = self.realm
 
-    local newUser = "INSERT IGNORE INTO users (steam_id) VALUES(?)"
+    local newUser = "INSERT INTO users (steam_id) VALUES(?) ON DUPLICATE KEY UPDATE id=id"
 
     local newSession = string.format( [[
         INSERT INTO sessions (user_id, joined, departed, duration, realm) VALUES(?, ?, ?, ?, '%s')
@@ -223,10 +223,13 @@ function storage:PlayerInit( ply, sessionStart, callback )
 
     transaction.onSuccess = function()
         logger:debug( "PlayerInit transaction successful!" )
-        local userExisted = newUser:lastInsert() ~= 0
+
+        local userExisted = newUser:lastInsert() == 0
+
         local totalTimeResult = totalTime:getData()[1]["SUM(duration)"]
         local sessionIdResult = newSession:lastInsert()
 
+        logger:debug( "NewUser last inserted index: " .. tostring(newUser:lastInsert()))
         logger:debug( "Sum of existing session durations: " .. totalTimeResult or "nil" )
 
         if not userExisted then
