@@ -29,11 +29,11 @@ function storage:InitQuery( rawQuery )
 end
 
 function storage:CreateUsersQuery()
-    -- TODO: Find an elegant way to add an index on steam_id
     local createUsers = [[
         CREATE TABLE IF NOT EXISTS users(
             id       MEDIUMINT   UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-            steam_id VARCHAR(20) UNIQUE NOT NULL
+            steam_id VARCHAR(20) UNIQUE   NOT NULL,
+            INDEX    (steam_id)
         );
     ]]
 
