@@ -1,35 +1,29 @@
 local plyMeta = FindMetaTable( "Player" )
 
---[[
 function plyMeta:GetUTime()
-    return self:GetNWFloat( "TotalUTime" )
-end
-
-function plyMeta:SetUTime( time )
-    self:SetNWFloat( "TotalUTime", time )
+    return self:GetNWFloat( "CFC_Time_TotalTime" )
 end
 
 function plyMeta:GetUTimeStart()
-    return self:GetNWFloat( "UTimeStart" )
-end
-
-function plyMeta:SetUTimeStart( time )
-    self:SetNWFloat( "UTimeStart", time )
+    return self:GetNWFloat( "CFC_Time_SessionStart" )
 end
 
 function plyMeta:GetUTimeSessionTime()
-    return os.time() - self:GetUTimeStart()
+    return self:GetNWFloat( "CFC_Time_SessionDuration" )
 end
 
 function plyMeta:GetUTimeTotalTime()
-    return self:GetUTime() + os.time() - self:GetUTimeStart()
+    local total = self:GetNWFloat( "CFC_Time_TotalTime" )
+    local session = self:GetNWFloat( "CFC_Time_SessionDuration" )
+
+    return total - session
 end
---]]
 
 if SERVER then
     CFCTime.utimeCompat = {}
+    compatability = CFCTime.utimeCompat
 
-    function CFCTime.utimeCompat:MigratePlayerFromUtime( ply )
+    function compatability:MigratePlayerFromUtime( ply )
         local steamId = ply:SteamID64()
         local uniqueId = ply:UniqueID()
 
@@ -51,11 +45,11 @@ if SERVER then
     end
 
     hook.Add( "CFC_Time_NewPlayer", "CFC_Time_UtimeCompat", function( ply )
-        return CFCTime.utimeCompat:MigratePlayerFromUtime( ply )
+        compatability:MigratePlayerFromUtime( ply )
     end )
 
-    hook.Add( "CFC_Time_PlayerInit", "CFC_Time_UtimeCompat", function( ply, initialTime, currentTime )
-        --ply:SetUTime( initialTime )
-        --ply:SetUTimeStart( currentTime )
+    hook.Add( "CFC_Time_PlayerTimeUpdated", "CFC_Time_UtimeCompat", function( ply, totalTime, joined )
+        ply:SetNWFloat( "TotalUTime", totalTime )
+        ply:SetNWFloat( "UTimeStart", joined )
     end )
 end
