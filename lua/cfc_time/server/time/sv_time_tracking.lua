@@ -48,6 +48,7 @@ end
 function ctime:updateTimes()
     local batch = {}
     local now = getNow()
+    local timeDelta = now - self.lastUpdate
 
     for steamID, data in pairs( self.pendingUpdates ) do
         local isValid = true
@@ -74,7 +75,6 @@ function ctime:updateTimes()
             local sessionID = self.sessions[steamID]
             batch[sessionID] = data
 
-            local timeDelta = now - self.lastUpdate
             local newTotal = self.totalTimes[steamID] + timeDelta
             self.totalTimes[steamID] = newTotal
         end
