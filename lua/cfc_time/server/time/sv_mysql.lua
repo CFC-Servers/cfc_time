@@ -256,7 +256,7 @@ function storage:PlayerInit( ply, sessionStart, callback )
     userExists.onSuccess = function( _, data )
         userExisted = table.IsEmpty( data )
 
-        logger:debug( "User Exists query complete (result: " .. userExisted .. "), starting the rest of the transaction" )
+        logger:debug( "User Exists query complete (result: " .. tostring( userExisted ) .. "), starting the rest of the transaction" )
 
         if not userExisted then
             local newUser = self:Prepare( "newUser", nil, steamId )
