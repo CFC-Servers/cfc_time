@@ -215,39 +215,47 @@ function storage:PlayerInit( ply, sessionStart, callback )
 
     local newUser = self:Prepare( "newUser", nil, steamId )
     local newSession = self:Prepare( "newSession", nil, steamId, sessionStart, nil, 0 )
-    local totalTime = self:Prepare( "totalTime", nil, steamId )
 
     transaction:addQuery( newUser )
     transaction:addQuery( newSession )
-    transaction:addQuery( totalTime )
 
     transaction.onSuccess = function()
         logger:debug( "PlayerInit transaction successful!" )
 
         local userExisted = newUser:lastInsert() == 0
-
-        local totalTimeResult = totalTime:getData()[1]["SUM(duration)"]
         local sessionIdResult = newSession:lastInsert()
-
         logger:debug( "NewUser last inserted index: " .. tostring(newUser:lastInsert()))
-        logger:debug( "Sum of existing session durations: " .. totalTimeResult or "nil" )
 
-        if not userExisted then
-            logger:debug( "User isn't in DB - running NewPlayer hook..." )
+        -- TODO: Pull this back out into the `transaction` when one of two things changes:
+        --  1. MySQLOO retroactively applies bugfixes from the 9.7-Beta (64bit only) back into 9.6 (32+64bit)
+        --  2. GMod merges the 64bit branch back into the main branch and releases (then we can use MySQLOO >=9.7)
+        --  We have to do this because of a weird bug.
+        --  Any prepared SELECT inside a transaction will always use the /first/ value given
+        --  to it during that session (until it's run outside of a transaction)
+        local totalTime = self:Prepare( "totalTime", function( _, data )
+            local totalTimeResult = data[1]["SUM(duration)"]
+            logger:debug( "Sum of existing session durations: " .. totalTimeResult or "nil" )
 
-            local newInitialTime = hook.Run( "CFC_Time_NewPlayer", ply )
+            if not userExisted then
+                logger:debug( "User isn't in DB - running NewPlayer hook..." )
 
-            logger:debug( "Received new initial time from hook: " .. newInitialTime or 0 )
+                local newInitialTime = hook.Run( "CFC_Time_NewPlayer", ply )
 
-            totalTimeResult = newInitialTime or totalTimeResult
-        end
+                logger:debug( "Received new initial time from hook: " .. newInitialTime or 0 )
 
-        local response = {
-            totalTime = totalTimeResult,
-            sessionId = sessionIdResult
-        }
+                totalTimeResult = newInitialTime or totalTimeResult
+            end
 
-        callback( response )
+            local response = {
+                totalTime = totalTimeResult,
+                sessionId = sessionIdResult
+            }
+
+            callback( response )
+
+        end, steamId )
+
+        totalTime:start()
     end
 
     transaction:start()
