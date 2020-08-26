@@ -241,7 +241,7 @@ function storage:PlayerInit( ply, sessionStart, callback )
 
                 local newInitialTime = hook.Run( "CFC_Time_NewPlayer", ply )
 
-                logger:debug( "Received new initial time from hook: " .. newInitialTime or 0 )
+                logger:debug( "Received new initial time from hook: " .. tostring(newInitialTime) )
 
                 totalTimeResult = newInitialTime or totalTimeResult
             end
