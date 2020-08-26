@@ -81,7 +81,7 @@ function ctime:updateTimes()
 
     if table.IsEmpty( batch ) then return end
 
-    logger:debug( "Updating " .. batchCount .. " sessions:" )
+    logger:debug( "Updating " .. table.Count( batch ) .. " sessions:" )
     logger:debug( batch )
 
     storage:UpdateBatch( batch )
