@@ -7,7 +7,7 @@ local logger = CFCTime.Logger
 local config = CFCTime.Config
 
 config.setDefaults{
-    mysql_host = "127.0.0.1:3306",
+    mysql_host = "127.0.0.1",
     mysql_username = "",
     mysql_password = "",
     mysql_database = "cfc_time"
