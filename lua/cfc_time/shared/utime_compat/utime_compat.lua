@@ -4,20 +4,20 @@ Utime = {}
 local plyMeta = FindMetaTable( "Player" )
 
 function plyMeta:GetUTime()
-    return self:GetNWFloat( "CFC_Time_TotalTime" )
+    return self:GetNWFloat( "CFC_Time_TotalTime", 0 )
 end
 
 function plyMeta:GetUTimeStart()
-    return self:GetNWFloat( "CFC_Time_SessionStart" )
+    return self:GetNWFloat( "CFC_Time_SessionStart", 0 )
 end
 
 function plyMeta:GetUTimeSessionTime()
-    return self:GetNWFloat( "CFC_Time_SessionDuration" )
+    return self:GetNWFloat( "CFC_Time_SessionDuration", 0 )
 end
 
 function plyMeta:GetUTimeTotalTime()
-    local total = self:GetNWFloat( "CFC_Time_TotalTime" )
-    local session = self:GetNWFloat( "CFC_Time_SessionDuration" )
+    local total = self:GetNWFloat( "CFC_Time_TotalTime", 0 )
+    local session = self:GetNWFloat( "CFC_Time_SessionDuration", 0 )
 
     return total - session
 end
