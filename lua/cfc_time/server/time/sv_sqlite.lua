@@ -84,33 +84,33 @@ function storage:RunSessionCleanup()
     ]], self.realm )
 end
 
-function storage:QueryCreateSession( steamId, sessionStart, sessionEnd, duration )
+function storage:QueryCreateSession( steamID, sessionStart, sessionEnd, duration )
     return queryFormat( [[
         INSERT INTO cfc_time_sessions (user_id, joined, departed, duration, realm) VALUES(%s, %s, %s, %s, %s)
-    ]], steamId, sessionStart, sessionEnd, duration, self.realm )
+    ]], steamID, sessionStart, sessionEnd, duration, self.realm )
 end
 
-function storage:QueryGetUser( steamId )
+function storage:QueryGetUser( steamID )
     return queryFormat(
         "SELECT * FROM cfc_time_users WHERE steam_id = %s",
-        steamId
+        steamID
     )
 end
 
-function storage:QueryCreateUser( steamId )
+function storage:QueryCreateUser( steamID )
     return queryFormat(
         "INSERT INTO cfc_time_users (steam_id) VALUES(%s) ON CONFLICT (steam_id) DO NOTHING",
-        steamId
+        steamID
     )
 end
 
-function storage:QueryTotalTime( steamId )
+function storage:QueryTotalTime( steamID )
     return queryFormat( [[
         SELECT SUM(duration)
         FROM cfc_time_sessions
         WHERE user_id = %s
         AND realm = %s
-    ]], steamId, self.realm )
+    ]], steamID, self.realm )
 end
 
 function storage:QueryLatestSessionId()
@@ -135,30 +135,30 @@ function storage:UpdateBatch( batchData )
     sql.Commit()
 end
 
-function storage:GetTotalTime( steamId, callback )
-    local data = storage:QueryTotalTime( steamId )
+function storage:GetTotalTime( steamID, callback )
+    local data = storage:QueryTotalTime( steamID )
 
     callback( data[1]["SUM(duration)"] )
 end
 
-function storage:CreateSession( callback, steamId, sessionStart, sessionEnd, duration )
-    local newSession = storage:QueryCreateSession( steamId, sessionStart, sessionEnd, duration )
+function storage:CreateSession( callback, steamID, sessionStart, sessionEnd, duration )
+    local newSession = storage:QueryCreateSession( steamID, sessionStart, sessionEnd, duration )
 
     if callback then callback( newSession ) end
 end
 
 function storage:PlayerInit( ply, sessionStart, callback )
-    local steamId = ply:SteamID64()
+    local steamID = ply:SteamID64()
 
-    logger:info( "Receiving PlayerInit call for: " .. tostring( steamId ) )
+    logger:info( "Receiving PlayerInit call for: " .. tostring( steamID ) )
 
     sql.Begin()
 
-    local userExisted = storage:QueryGetUser( steamId ) ~= nil
-    storage:QueryCreateUser( steamId )
-    storage:QueryCreateSession( steamId, sessionStart, SQL_NULL, 0 )
+    local userExisted = storage:QueryGetUser( steamID ) ~= nil
+    storage:QueryCreateUser( steamID )
+    storage:QueryCreateSession( steamID, sessionStart, SQL_NULL, 0 )
 
-    local totalTime = tonumber( storage:QueryTotalTime( steamId )[1]["SUM(duration)"] )
+    local totalTime = tonumber( storage:QueryTotalTime( steamID )[1]["SUM(duration)"] )
     local sessionId = tonumber( storage:QueryLatestSessionId()[1]["last_insert_rowid()"] )
 
     sql.Commit()
