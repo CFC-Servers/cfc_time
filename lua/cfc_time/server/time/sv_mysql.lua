@@ -186,18 +186,18 @@ function storage:UpdateBatch( batchData )
     transaction:start()
 end
 
-function storage:GetTotalTime( steamId, callback )
+function storage:GetTotalTime( steamID, callback )
     local onSuccess = function( _, data )
         callback( data[1]["SUM(duration)"] )
     end
 
-    local query = self:Prepare( "totalTime", onSuccess, steamId )
+    local query = self:Prepare( "totalTime", onSuccess, steamID )
 
     query:start()
 end
 
-function storage:CreateSession( callback, steamId, sessionStart, sessionEnd, duration )
-    local newSession = self:Prepare( "newSession", callback, steamId, sessionStart, sessionEnd, duration )
+function storage:CreateSession( callback, steamID, sessionStart, sessionEnd, duration )
+    local newSession = self:Prepare( "newSession", callback, steamID, sessionStart, sessionEnd, duration )
     newSession:start()
 end
 
@@ -208,13 +208,13 @@ end
 --  - sessionId (the id of the newly created session)
 --  - totalTime (the calculated total playtime)
 function storage:PlayerInit( ply, sessionStart, callback )
-    local steamId = ply:SteamID64()
+    local steamID = ply:SteamID64()
 
-    logger:info( "Receiving PlayerInit call for: " .. tostring( steamId ) )
+    logger:info( "Receiving PlayerInit call for: " .. tostring( steamID ) )
     local transaction = storage:InitTransaction()
 
-    local newUser = self:Prepare( "newUser", nil, steamId )
-    local newSession = self:Prepare( "newSession", nil, steamId, sessionStart, nil, 0 )
+    local newUser = self:Prepare( "newUser", nil, steamID )
+    local newSession = self:Prepare( "newSession", nil, steamID, sessionStart, nil, 0 )
 
     transaction:addQuery( newUser )
     transaction:addQuery( newSession )
@@ -253,7 +253,7 @@ function storage:PlayerInit( ply, sessionStart, callback )
 
             callback( response )
 
-        end, steamId )
+        end, steamID )
 
         totalTime:start()
     end
