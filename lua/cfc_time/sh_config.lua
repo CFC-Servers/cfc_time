@@ -1,6 +1,5 @@
-CFCTime.ctime = CFCTime.ctime or {}
-CFCTime.ctime.Config = {}
-local config = CFCTime.ctime.Config
+CFCTime.Config = CFCTime.Config or {}
+local config = CFCTime.Config
 
 local configFilename = "cfc_time/config.json"
 
@@ -13,19 +12,31 @@ config.values = {
     storageType = "sqlite"
 }
 
-local function saveConfig( key )
+function config.save()
+    file.CreateDir("cfc_time")
     file.Write( configFilename, util.TableToJSON( config.values, true ))
 end
 
-local function configInit()
-    file.CreateDir("cfc_time")
+function config.load()
     local data = file.Read( configFilename ) or ""
     local values = util.JSONToTable( data ) or {}
     table.Merge( config.values, values )
-
-    saveConfig()
 end
 
+function config.setDefaults( tbl )
+    for k, v in pairs( tbl ) do
+        if not config.values[k] then
+            config.values[k] = v
+        end
+    end
+
+    config.save()
+end
+
+local function configInit()
+    config.load()
+    config.save()
+end
 
 
 function config.set( key, value )
@@ -56,7 +67,7 @@ local function commandSet( ply, cmd, args )
     end
 
     config.set( key, value )
-    saveConfig()
+    config.save()
     ply:PrintMessage( HUD_PRINTCONSOLE, key.."="..value)
     ply:PrintMessage( HUD_PRINTCONSOLE, "A server restart may be required for these changes to take effect" )
 end

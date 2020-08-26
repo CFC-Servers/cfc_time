@@ -60,7 +60,7 @@ function ctime:startTimer()
 
     timer.Create(
         self.updateTimerName,
-        self.Config.updateInterval,
+        sCFCTime.Config.get( "updateInterval "),
         0,
         function() ctime:updateTimes() end
     )
