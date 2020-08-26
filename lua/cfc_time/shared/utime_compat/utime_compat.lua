@@ -27,7 +27,7 @@ if SERVER then
     compatability = CFCTime.utimeCompat
 
     function compatability:MigratePlayerFromUtime( ply )
-        local steamId = ply:SteamID64()
+        local steamID = ply:SteamID64()
         local uniqueId = ply:UniqueID()
 
         local utimeQuery = "SELECT totaltime, lastvisit FROM utime WHERE player = " .. uniqueId
@@ -40,9 +40,9 @@ if SERVER then
         local sessionStart = lastVisit - totalTime
         local sessionEnd = lastVisit
 
-        CFCTime.Storage:CreateSession( nil, steamId, sessionStart, sessionEnd, totalTime )
+        CFCTime.Storage:CreateSession( nil, steamID, sessionStart, sessionEnd, totalTime )
 
-        CFCTime.Logger:info( "Player " .. ply:GetName() .. "[" .. steamId .. "] migrated from UTime with existing time of " .. totalTime )
+        CFCTime.Logger:info( "Player " .. ply:GetName() .. "[" .. steamID .. "] migrated from UTime with existing time of " .. totalTime )
 
         return totalTime
     end
