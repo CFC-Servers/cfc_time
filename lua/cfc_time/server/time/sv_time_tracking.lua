@@ -6,7 +6,7 @@ local storage = CFCTime.Storage
 
 local getNow = os.time
 
--- <database session ID> = { joined = <timestamp>, departed = <timestamp> | nil, duration = <float> }
+-- <steamID64> = { joined = <timestamp>, departed = <timestamp> | nil, duration = <float> }
 ctime.pendingUpdates = {}
 ctime.updateTimerName = "CFC_Time_UpdateTimer"
 ctime.lastUpdate = getNow()
@@ -35,8 +35,7 @@ function ctime:broadcastTimes( sessions )
         -- TODO: These tables seem like they have a weird name when used in this context
         -- Maybe self.pendingUpdates becomes self.sessions
         -- And self.sessions becomes self.sessionIDs
-        local sessionID = self.sessions[steamID]
-        local session = self.pendingUpdates[sessionID]
+        local session = self.pendingUpdates[steamID]
 
         local joined = session.joined
         local duration = session.duration
