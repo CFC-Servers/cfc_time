@@ -7,12 +7,12 @@ local storage = CFCTime.Storage
 local getNow = os.time
 
 -- <steamID64> = { joined = <timestamp>, departed = <timestamp> | nil, duration = <float> }
-ctime.pendingUpdates = {}
+ctime.activeSessions = {}
 ctime.updateTimerName = "CFC_Time_UpdateTimer"
 ctime.lastUpdate = getNow()
 
 -- steamID64 = <database session ID>
-ctime.sessions = {}
+ctime.sessionIDs = {}
 
 -- steamID64 = <total time float>
 ctime.totalTimes = {}
@@ -32,10 +32,7 @@ function ctime:broadcastTimes( sessions )
     for steamID, totalTime in pairs( self.totalTimes ) do
         local ply = steamIDToPly[steamID]
 
-        -- TODO: These tables seem like they have a weird name when used in this context
-        -- Maybe self.pendingUpdates becomes self.sessions
-        -- And self.sessions becomes self.sessionIDs
-        local session = self.pendingUpdates[steamID]
+        local session = self.activeSessions[steamID]
 
         local joined = session.joined
         local duration = session.duration
@@ -49,15 +46,15 @@ function ctime:updateTimes()
     local now = getNow()
     local timeDelta = now - self.lastUpdate
 
-    for steamID, data in pairs( self.pendingUpdates ) do
+    for steamID, data in pairs( self.activeSessions ) do
         local isValid = true
 
         local joined = data.joined
         local departed = data.departed
 
         if departed and departed < self.lastUpdate then
-            self.pendingUpdates[steamID] = nil
-            self.sessions[steamID] = nil
+            self.activeSessions[steamID] = nil
+            self.sessionIDs[steamID] = nil
             self.totalTimes[steamID] = nil
             steamIDToPly[steamID] = nil
             isValid = false
@@ -71,7 +68,7 @@ function ctime:updateTimes()
         if isValid then
             data.duration = sessionTime
 
-            local sessionID = self.sessions[steamID]
+            local sessionID = self.sessionIDs[steamID]
             batch[sessionID] = data
 
             local newTotal = self.totalTimes[steamID] + timeDelta
@@ -112,13 +109,13 @@ function ctime:initPlayer( ply )
         local totalTime = data.totalTime
         local sessionID = data.sessionID
 
-        ctime.sessions[steamID] = sessionID
+        ctime.sessionIDs[steamID] = sessionID
         ctime.totalTimes[steamID] = totalTime
         steamIDToPly[steamID] = ply
 
         logger:debug( "Player " .. ply:GetName() .. " has a total time of " .. tostring( totalTime ) .. " at " .. now )
 
-        self.pendingUpdates[steamID] = {
+        self.activeSessions[steamID] = {
             joined = now
         }
 
@@ -138,12 +135,12 @@ function ctime:cleanupPlayer( ply )
 
     logger:debug( "Player " .. ply:GetName() .. " ( " .. steamID .. " ) left at " .. now )
 
-    if not self.pendingUpdates[steamID] then
+    if not self.activeSessions[steamID] then
         logger:error( "No pending update for above player, did they leave before database returned?" )
         return
     end
 
-    self.pendingUpdates[steamID].departed = getNow()
+    self.activeSessions[steamID].departed = getNow()
 end
 
 hook.Add( "Think", "CFC_Time_Init", function()
