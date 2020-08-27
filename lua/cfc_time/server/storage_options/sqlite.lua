@@ -127,8 +127,8 @@ function storage:UpdateBatch( batchData )
 
     sql.Begin()
 
-    for sessionId, data in pairs( batchData ) do
-        local updateStr = buildSessionUpdate( sessionId, data )
+    for sessionID, data in pairs( batchData ) do
+        local updateStr = buildSessionUpdate( sessionID, data )
         sql.Query( updateStr )
     end
 
@@ -136,9 +136,12 @@ function storage:UpdateBatch( batchData )
 end
 
 function storage:GetTotalTime( steamID, callback )
+    callback = callback or function()end
     local data = storage:QueryTotalTime( steamID )
 
     callback( data[1]["SUM(duration)"] )
+
+    return data
 end
 
 function storage:CreateSession( callback, steamID, sessionStart, sessionEnd, duration )
@@ -158,19 +161,18 @@ function storage:PlayerInit( ply, sessionStart, callback )
     storage:QueryCreateUser( steamID )
     storage:QueryCreateSession( steamID, sessionStart, SQL_NULL, 0 )
 
-    local totalTime = tonumber( storage:QueryTotalTime( steamID )[1]["SUM(duration)"] )
-    local sessionId = tonumber( storage:QueryLatestSessionId()[1]["last_insert_rowid()"] )
+    if not userExisted then
+        hook.Run( "CFC_Time_NewPlayer", ply )
+    end
+
+    local totalTime = tonumber( storage:GetTotalTime( steamID ) )
+    local sessionID = tonumber( storage:QueryLatestSessionId()[1]["last_insert_rowid()"] )
 
     sql.Commit()
 
-    if not userExisted then
-        local newInitialTime = hook.Run( "CFC_Time_NewPlayer", ply )
-        totalTime = newInitialTime or totalTime
-    end
-
     local response = {
         totalTime = totalTime,
-        sessionID = sessionId
+        sessionID = sessionID
     }
 
     callback( response )
