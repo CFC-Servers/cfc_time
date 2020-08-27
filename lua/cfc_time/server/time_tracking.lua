@@ -7,7 +7,7 @@ local storage = CFCTime.Storage
 local getNow = os.time
 
 -- <steamID64> = { joined = <timestamp>, departed = <timestamp> | nil, duration = <float> }
-ctime.activeSessions = {}
+ctime.sessions = {}
 ctime.updateTimerName = "CFC_Time_UpdateTimer"
 ctime.lastUpdate = getNow()
 
@@ -32,7 +32,7 @@ function ctime:broadcastTimes( sessions )
     for steamID, totalTime in pairs( self.totalTimes ) do
         local ply = steamIDToPly[steamID]
 
-        local session = self.activeSessions[steamID]
+        local session = self.sessions[steamID]
 
         local joined = session.joined
         local duration = session.duration
@@ -46,14 +46,14 @@ function ctime:updateTimes()
     local now = getNow()
     local timeDelta = now - self.lastUpdate
 
-    for steamID, data in pairs( self.activeSessions ) do
+    for steamID, data in pairs( self.sessions ) do
         local isValid = true
 
         local joined = data.joined
         local departed = data.departed
 
         if departed and departed < self.lastUpdate then
-            self.activeSessions[steamID] = nil
+            self.sessions[steamID] = nil
             self.sessionIDs[steamID] = nil
             self.totalTimes[steamID] = nil
             steamIDToPly[steamID] = nil
@@ -115,7 +115,7 @@ function ctime:initPlayer( ply )
 
         logger:debug( "Player " .. ply:GetName() .. " has a total time of " .. tostring( totalTime ) .. " at " .. now )
 
-        self.activeSessions[steamID] = {
+        self.sessions[steamID] = {
             joined = now
         }
 
@@ -135,12 +135,12 @@ function ctime:cleanupPlayer( ply )
 
     logger:debug( "Player " .. ply:GetName() .. " ( " .. steamID .. " ) left at " .. now )
 
-    if not self.activeSessions[steamID] then
+    if not self.sessions[steamID] then
         logger:error( "No pending update for above player, did they leave before database returned?" )
         return
     end
 
-    self.activeSessions[steamID].departed = getNow()
+    self.sessions[steamID].departed = getNow()
 end
 
 hook.Add( "Think", "CFC_Time_Init", function()
