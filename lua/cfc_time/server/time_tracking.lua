@@ -91,7 +91,7 @@ function ctime:startTimer()
 
     timer.Create(
         self.updateTimerName,
-        self.Config.updateInterval,
+        CFCTime.Config.get( "updateInterval" ),
         0,
         function() ctime:updateTimes() end
     )

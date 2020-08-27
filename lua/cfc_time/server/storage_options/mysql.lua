@@ -4,8 +4,22 @@ require( "mysqloo" )
 -- TODO: Load/Set the realm
 local storage = CFCTime.Storage
 local logger = CFCTime.Logger
+local config = CFCTime.Config
 
-storage.database = mysqloo.connect( "host", "username", "password", "cfc_time" )
+config.setDefaults{
+    mysql_host = "127.0.0.1",
+    mysql_username = "",
+    mysql_password = "",
+    mysql_database = "cfc_time"
+}
+
+storage.database = mysqloo.connect(
+    config.get( "mysql_host" ),
+    config.get( "mysql_username" ),
+    config.get( "mysql_password" ),
+    config.get( "mysql_database" )
+)
+
 storage.preparedQueries = {}
 
 function storage:InitTransaction()
