@@ -240,6 +240,11 @@ function storage:PlayerInit( ply, sessionStart, callback )
         local sessionIDResult = newSession:lastInsert()
         logger:debug( "NewUser last inserted index: " .. tostring(newUser:lastInsert()))
 
+        if not userExisted then
+            logger:debug( "User isn't in DB - running NewPlayer hook..." )
+            hook.Run( "CFC_Time_NewPlayer", ply )
+        end
+
         -- TODO: Pull this back out into the `transaction` when one of two things changes:
         --  1. MySQLOO retroactively applies bugfixes from the 9.7-Beta (64bit only) back into 9.6 (32+64bit)
         --  2. GMod merges the 64bit branch back into the main branch and releases (then we can use MySQLOO >=9.7)
@@ -249,16 +254,6 @@ function storage:PlayerInit( ply, sessionStart, callback )
         local totalTime = self:Prepare( "totalTime", function( _, data )
             local totalTimeResult = data[1]["SUM(duration)"]
             logger:debug( "Sum of existing session durations: " .. totalTimeResult or "nil" )
-
-            if not userExisted then
-                logger:debug( "User isn't in DB - running NewPlayer hook..." )
-
-                local newInitialTime = hook.Run( "CFC_Time_NewPlayer", ply )
-
-                logger:debug( "Received new initial time from hook: " .. tostring(newInitialTime) )
-
-                totalTimeResult = newInitialTime or totalTimeResult
-            end
 
             local response = {
                 totalTime = totalTimeResult,
