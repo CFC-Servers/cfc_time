@@ -9,7 +9,8 @@ local configFilename = "cfc_time/config.json"
 -- defaults
 config.values = {
     updateInterval = 10,
-    storageType = "sqlite"
+    storageType = "sqlite",
+    realm = "default"
 }
 
 function config.save()
