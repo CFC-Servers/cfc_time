@@ -1,9 +1,7 @@
 CFCTime.Storage = {}
 
---include( "sv_mysql.lua" )
+local storageType = CFCTime.Config.get( "storageType" )
 
-CFCTime.Storage.realm = "cfctest"
-include( "sv_mysql.lua" )
+CFCTime.Storage.realm =  CFCTime.Config.get( "realm" )
 
--- if mysql, load sv_mysql.lua
--- else/if mysqlite load sv_sqlite.lua
+include( "storage_options/"..storageType..".lua" )
