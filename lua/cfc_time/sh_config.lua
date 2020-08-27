@@ -29,7 +29,7 @@ function config.setDefaults( tbl )
             config.values[k] = v
         end
     end
-
+    config.load()
     config.save()
 end
 
