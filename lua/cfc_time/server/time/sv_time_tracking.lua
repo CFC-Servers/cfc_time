@@ -11,24 +11,55 @@ ctime.pendingUpdates = {}
 ctime.updateTimerName = "CFC_Time_UpdateTimer"
 ctime.lastUpdate = getNow()
 
--- steamID65 = database session ID
+-- steamID64 = <database session ID>
 ctime.sessions = {}
-ctime.initialTimes = {}
+
+-- steamID64 = <total time float>
+ctime.totalTimes = {}
+
+-- steamID64 = <player entity>
+local steamIDToPly = {}
+
+function ctime:broadcastPlayerTime( ply, totalTime, joined, duration )
+    ply:SetNWFloat( "CFC_Time_TotalTime", totalTime )
+    ply:SetNWFloat( "CFC_Time_SessionStart", joined )
+    ply:SetNWFloat( "CFC_Time_SessionDuration", duration )
+
+    hook.Run( "CFC_Time_PlayerTimeUpdated", ply, totalTime, joined, duration )
+end
+
+function ctime:broadcastTimes( sessions )
+    for steamID, totalTime in pairs( self.totalTimes ) do
+        local ply = steamIDToPly[steamID]
+
+        -- TODO: These tables seem like they have a weird name when used in this context
+        -- Maybe self.pendingUpdates becomes self.sessions
+        -- And self.sessions becomes self.sessionIDs
+        local session = self.pendingUpdates[steamID]
+
+        local joined = session.joined
+        local duration = session.duration
+
+        self:broadcastPlayerTime( ply, totalTime, joined, duration )
+    end
+end
 
 function ctime:updateTimes()
     local batch = {}
     local now = getNow()
+    local timeDelta = now - self.lastUpdate
 
-    for steamId, data in pairs( self.pendingUpdates ) do
+    for steamID, data in pairs( self.pendingUpdates ) do
         local isValid = true
 
         local joined = data.joined
         local departed = data.departed
 
         if departed and departed < self.lastUpdate then
-            self.pendingUpdates[steamId] = nil
-            self.sessions[steamId] = nil
-            ctime.initialTimes[steamId] = nil
+            self.pendingUpdates[steamID] = nil
+            self.sessions[steamID] = nil
+            self.totalTimes[steamID] = nil
+            steamIDToPly[steamID] = nil
             isValid = false
         end
 
@@ -40,19 +71,22 @@ function ctime:updateTimes()
         if isValid then
             data.duration = sessionTime
 
-            local sessionId = self.sessions[steamId]
-            batch[sessionId] = data
+            local sessionID = self.sessions[steamID]
+            batch[sessionID] = data
+
+            local newTotal = self.totalTimes[steamID] + timeDelta
+            self.totalTimes[steamID] = newTotal
         end
     end
 
-    local batchCount = table.Count( batch )
+    if table.IsEmpty( batch ) then return end
 
-    if batchCount == 0 then return end
-
-    logger:debug( "Updating " .. batchCount .. " sessions:" )
+    logger:debug( "Updating " .. table.Count( batch ) .. " sessions:" )
+    logger:debug( batch )
 
     storage:UpdateBatch( batch )
-    ctime.lastUpdate = now
+    self:broadcastTimes()
+    self.lastUpdate = now
 end
 
 function ctime:startTimer()
@@ -72,43 +106,44 @@ end
 
 function ctime:initPlayer( ply )
     local now = getNow()
-    local steamId = ply:SteamID64()
+    local steamID = ply:SteamID64()
 
     storage:PlayerInit( ply, now, function( data )
-        local initialTime = data.totalTime
-        local sessionId = data.sessionId
+        local totalTime = data.totalTime
+        local sessionID = data.sessionID
 
-        ctime.sessions[steamId] = sessionId
-        ctime.initialTimes[steamId] = initialTime
+        ctime.sessions[steamID] = sessionID
+        ctime.totalTimes[steamID] = totalTime
+        steamIDToPly[steamID] = ply
 
-        logger:debug( "Player " .. ply:GetName() .. " has initial time of " .. tostring( initialTime ) .. " at " .. now )
+        logger:debug( "Player " .. ply:GetName() .. " has a total time of " .. tostring( totalTime ) .. " at " .. now )
 
-        self.pendingUpdates[steamId] = {
+        self.pendingUpdates[steamID] = {
             joined = now
         }
 
-        hook.Run( "CFC_Time_PlayerInit", ply, initialTime, now )
+        ctime:broadcastPlayerTime( ply, totalTime, now, 0 )
     end )
 end
 
 function ctime:cleanupPlayer( ply )
     -- TODO: Verify bug report from the wiki: https://wiki.facepunch.com/gmod/GM:PlayerDisconnected
     local now = getNow()
-    local steamId = ply:SteamID64()
+    local steamID = ply:SteamID64()
 
-    if not steamId then
+    if not steamID then
         logger:error( "Player " .. ply:GetName() .. " did not have a steamID64 on disconnect" )
         return
     end
 
-    logger:debug( "Player " .. ply:GetName() .. " ( " .. steamId .. " ) left at " .. now )
+    logger:debug( "Player " .. ply:GetName() .. " ( " .. steamID .. " ) left at " .. now )
 
-    if not self.pendingUpdates[steamId] then
+    if not self.pendingUpdates[steamID] then
         logger:error( "No pending update for above player, did they leave before database returned?" )
         return
     end
 
-    self.pendingUpdates[steamId].departed = getNow()
+    self.pendingUpdates[steamID].departed = getNow()
 end
 
 hook.Add( "Think", "CFC_Time_Init", function()

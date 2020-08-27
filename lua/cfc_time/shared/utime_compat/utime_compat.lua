@@ -1,36 +1,33 @@
+-- We create a mock Utime so addons that require it think we have it
+Utime = {}
+
 local plyMeta = FindMetaTable( "Player" )
 
---[[
 function plyMeta:GetUTime()
-    return self:GetNWFloat( "TotalUTime" )
-end
-
-function plyMeta:SetUTime( time )
-    self:SetNWFloat( "TotalUTime", time )
+    return self:GetNWFloat( "CFC_Time_TotalTime", 0 )
 end
 
 function plyMeta:GetUTimeStart()
-    return self:GetNWFloat( "UTimeStart" )
-end
-
-function plyMeta:SetUTimeStart( time )
-    self:SetNWFloat( "UTimeStart", time )
+    return self:GetNWFloat( "CFC_Time_SessionStart", 0 )
 end
 
 function plyMeta:GetUTimeSessionTime()
-    return os.time() - self:GetUTimeStart()
+    return self:GetNWFloat( "CFC_Time_SessionDuration", 0 )
 end
 
 function plyMeta:GetUTimeTotalTime()
-    return self:GetUTime() + os.time() - self:GetUTimeStart()
+    local total = self:GetNWFloat( "CFC_Time_TotalTime", 0 )
+    local session = self:GetNWFloat( "CFC_Time_SessionDuration", 0 )
+
+    return total - session
 end
---]]
 
 if SERVER then
     CFCTime.utimeCompat = {}
+    compatability = CFCTime.utimeCompat
 
-    function CFCTime.utimeCompat:MigratePlayerFromUtime( ply )
-        local steamId = ply:SteamID64()
+    function compatability:MigratePlayerFromUtime( ply )
+        local steamID = ply:SteamID64()
         local uniqueId = ply:UniqueID()
 
         local utimeQuery = "SELECT totaltime, lastvisit FROM utime WHERE player = " .. uniqueId
@@ -43,19 +40,19 @@ if SERVER then
         local sessionStart = lastVisit - totalTime
         local sessionEnd = lastVisit
 
-        CFCTime.Storage:CreateSession( nil, steamId, sessionStart, sessionEnd, totalTime )
+        CFCTime.Storage:CreateSession( nil, steamID, sessionStart, sessionEnd, totalTime )
 
-        CFCTime.Logger:info( "Player " .. ply:GetName() .. "[" .. steamId .. "] migrated from UTime with existing time of " .. totalTime )
+        CFCTime.Logger:info( "Player " .. ply:GetName() .. "[" .. steamID .. "] migrated from UTime with existing time of " .. totalTime )
 
         return totalTime
     end
 
     hook.Add( "CFC_Time_NewPlayer", "CFC_Time_UtimeCompat", function( ply )
-        return CFCTime.utimeCompat:MigratePlayerFromUtime( ply )
+        compatability:MigratePlayerFromUtime( ply )
     end )
 
-    hook.Add( "CFC_Time_PlayerInit", "CFC_Time_UtimeCompat", function( ply, initialTime, currentTime )
-        --ply:SetUTime( initialTime )
-        --ply:SetUTimeStart( currentTime )
+    hook.Add( "CFC_Time_PlayerTimeUpdated", "CFC_Time_UtimeCompat", function( ply, totalTime, joined )
+        ply:SetNWFloat( "TotalUTime", totalTime )
+        ply:SetNWFloat( "UTimeStart", joined )
     end )
 end
