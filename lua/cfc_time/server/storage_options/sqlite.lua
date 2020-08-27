@@ -136,12 +136,12 @@ function storage:UpdateBatch( batchData )
 end
 
 function storage:GetTotalTime( steamID, callback )
-    callback = callback or function()end
     local data = storage:QueryTotalTime( steamID )
+    local sum = data[1]["SUM(duration)"]
 
-    callback( data[1]["SUM(duration)"] )
+    if callback then callback( sum ) end
 
-    return data
+    return sum
 end
 
 function storage:CreateSession( callback, steamID, sessionStart, sessionEnd, duration )
