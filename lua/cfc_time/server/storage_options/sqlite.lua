@@ -170,7 +170,7 @@ function storage:PlayerInit( ply, sessionStart, callback )
 
     local response = {
         totalTime = totalTime,
-        sessionId = sessionId
+        sessionID = sessionId
     }
 
     callback( response )
