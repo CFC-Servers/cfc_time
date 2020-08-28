@@ -50,6 +50,8 @@ if SERVER then
     hook.Add( "CFC_Time_PlayerInitialTime", "CFC_Time_UtimeCompat", function( ply, firstVisit, timeStruct )
         if not firstVisit then return end
 
+        logger:debug( "[UtimeCompat] Received PlayerInitialTime hook for first-time player - migrating time!")
+
         local totalUtime = compat:MigratePlayerFromUtime( ply )
         timeStruct:add( totalUtime )
     end )
