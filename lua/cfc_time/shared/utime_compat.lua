@@ -1,6 +1,9 @@
 -- We create a mock Utime so addons that require it think we have it
 Utime = {}
 
+-- Addons like APromote rely on the utime_welcome convar existing for some reason?
+CreateConVar( "utime_welcome", "1", FCVAR_ARCHIVE )
+
 local logger = CFCTime.Logger
 local plyMeta = FindMetaTable( "Player" )
 
