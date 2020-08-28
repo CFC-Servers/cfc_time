@@ -233,12 +233,12 @@ function storage:PlayerInit( ply, sessionStart, callback )
     transaction.onSuccess = function()
         logger:debug( "PlayerInit transaction successful!" )
 
-        local userExisted = newUser:lastInsert() == 0
+        local firstVisit = newUser:lastInsert() ~= 0
         local sessionIDResult = newSession:lastInsert()
         logger:debug( "NewUser last inserted index: " .. tostring( newUser:lastInsert() ) )
 
         local data =  {
-            userExisted = userExisted,
+            firstVisit = firstVisit,
             sessionID = sessionIDResult
         }
 
