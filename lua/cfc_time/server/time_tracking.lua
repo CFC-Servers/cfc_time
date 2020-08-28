@@ -137,11 +137,9 @@ function ctime:initPlayer( ply )
         ctime.sessionIDs[steamID] = sessionID
         ctime.sessions[steamID] = { joined = now }
 
-        if firstVisit then
-            return setupPly( 0, true )
-        end
+        if firstVisit then return setupPly( 0, true ) end
 
-        storage:GetPlayerTime( steamID, function( total )
+        storage:GetTotalTime( steamID, function( total )
             setupPly( total, false )
         end )
     end )
