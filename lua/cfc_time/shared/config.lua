@@ -14,8 +14,8 @@ config.values = {
 }
 
 function config.save()
-    file.CreateDir("cfc_time")
-    file.Write( configFilename, util.TableToJSON( config.values, true ))
+    file.CreateDir( "cfc_time" )
+    file.Write( configFilename, util.TableToJSON( config.values, true ) )
 end
 
 function config.load()
@@ -30,6 +30,7 @@ function config.setDefaults( tbl )
             config.values[k] = v
         end
     end
+
     config.load()
     config.save()
 end
@@ -50,7 +51,7 @@ function config.get( key )
 end
 
 function config.getType( key )
-    return type(config.values[key])
+    return type( config.values[key] )
 end
 
 local function commandSet( ply, cmd, args )
@@ -60,16 +61,16 @@ local function commandSet( ply, cmd, args )
     if not value or not key then return end
 
     if config.getType( key ) == "nil" then
-        return ply:PrintMessage( HUD_PRINTCONSOLE, "invalid config key "..key)
+        return ply:PrintMessage( HUD_PRINTCONSOLE, "invalid config key " .. key )
     end
 
     if config.getType( key ) == "number" then
-        value = tonumber(value)
+        value = tonumber( value )
     end
 
     config.set( key, value )
     config.save()
-    ply:PrintMessage( HUD_PRINTCONSOLE, key.."="..value)
+    ply:PrintMessage( HUD_PRINTCONSOLE, key .. "=" .. value )
     ply:PrintMessage( HUD_PRINTCONSOLE, "A server restart may be required for these changes to take effect" )
 end
 

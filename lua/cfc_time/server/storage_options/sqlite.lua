@@ -64,16 +64,16 @@ end
 function storage:SetupTables()
     sql.Begin()
 
-    storage:CreateUsersTable()
-    storage:CreateSessionsTable()
+    self:CreateUsersTable()
+    self:CreateSessionsTable()
 
     sql.Commit()
 end
 
 hook.Add( "PostGamemodeLoaded", "CFC_Time_DBInit", function()
     logger:info( "Gamemoded loaded, beginning database init..." )
-    storage:RunSessionCleanup()
     storage:SetupTables()
+    storage:RunSessionCleanup()
 end )
 
 function storage:RunSessionCleanup()
@@ -136,7 +136,7 @@ function storage:UpdateBatch( batchData )
 end
 
 function storage:GetTotalTime( steamID, callback )
-    local data = storage:QueryTotalTime( steamID )
+    local data = self:QueryTotalTime( steamID )
     local sum = data[1]["SUM(duration)"]
 
     if callback then callback( sum ) end
@@ -145,7 +145,7 @@ function storage:GetTotalTime( steamID, callback )
 end
 
 function storage:CreateSession( callback, steamID, sessionStart, sessionEnd, duration )
-    local newSession = storage:QueryCreateSession( steamID, sessionStart, sessionEnd, duration )
+    local newSession = self:QueryCreateSession( steamID, sessionStart, sessionEnd, duration )
 
     if callback then callback( newSession ) end
 end
@@ -157,21 +157,16 @@ function storage:PlayerInit( ply, sessionStart, callback )
 
     sql.Begin()
 
-    local userExisted = storage:QueryGetUser( steamID ) ~= nil
-    storage:QueryCreateUser( steamID )
-    storage:QueryCreateSession( steamID, sessionStart, SQL_NULL, 0 )
-
-    if not userExisted then
-        hook.Run( "CFC_Time_NewPlayer", ply )
-    end
-
-    local totalTime = tonumber( storage:GetTotalTime( steamID ) )
-    local sessionID = tonumber( storage:QueryLatestSessionId()[1]["last_insert_rowid()"] )
+    local userExisted = self:QueryGetUser( steamID ) ~= nil
+    self:QueryCreateUser( steamID )
+    self:QueryCreateSession( steamID, sessionStart, SQL_NULL, 0 )
 
     sql.Commit()
 
+    local sessionID = tonumber( self:QueryLatestSessionId()[1]["last_insert_rowid()"] )
+
     local response = {
-        totalTime = totalTime,
+        userExisted = userExisted,
         sessionID = sessionID
     }
 

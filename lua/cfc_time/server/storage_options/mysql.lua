@@ -1,7 +1,5 @@
 require( "mysqloo" )
 
--- TODO: Make a config module that will load the connection settings properly
--- TODO: Load/Set the realm
 local storage = CFCTime.Storage
 local logger = CFCTime.Logger
 local config = CFCTime.Config
@@ -77,7 +75,6 @@ function storage:SessionCleanupQuery()
         WHERE departed IS NULL
         AND realm = '%s'
     ]], self.realm )
-    logger:debug( fixMissingDepartedTimes )
 
     return self.database:query( fixMissingDepartedTimes )
 end
@@ -238,33 +235,14 @@ function storage:PlayerInit( ply, sessionStart, callback )
 
         local userExisted = newUser:lastInsert() == 0
         local sessionIDResult = newSession:lastInsert()
-        logger:debug( "NewUser last inserted index: " .. tostring(newUser:lastInsert()))
+        logger:debug( "NewUser last inserted index: " .. tostring( newUser:lastInsert() ) )
 
-        if not userExisted then
-            logger:debug( "User isn't in DB - running NewPlayer hook..." )
-            hook.Run( "CFC_Time_NewPlayer", ply )
-        end
+        local data =  {
+            userExisted = userExisted,
+            sessionID = sessionIDResult
+        }
 
-        -- TODO: Pull this back out into the `transaction` when one of two things changes:
-        --  1. MySQLOO retroactively applies bugfixes from the 9.7-Beta (64bit only) back into 9.6 (32+64bit)
-        --  2. GMod merges the 64bit branch back into the main branch and releases (then we can use MySQLOO >=9.7)
-        --  We have to do this because of a weird bug.
-        --  Any prepared SELECT inside a transaction will always use the /first/ value given
-        --  to it during that session (until it's run outside of a transaction)
-        local totalTime = self:Prepare( "totalTime", function( _, data )
-            local totalTimeResult = data[1]["SUM(duration)"]
-            logger:debug( "Sum of existing session durations: " .. totalTimeResult or "nil" )
-
-            local response = {
-                totalTime = totalTimeResult,
-                sessionID = sessionIDResult
-            }
-
-            callback( response )
-
-        end, steamID )
-
-        totalTime:start()
+        callback( data )
     end
 
     transaction:start()

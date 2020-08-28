@@ -15,6 +15,7 @@ ctime.lastUpdate = getNow()
 ctime.sessionIDs = {}
 
 -- steamID64 = <total time float>
+-- purely cosmetic, does not affect times in the database
 ctime.totalTimes = {}
 
 -- steamID64 = <player entity>
@@ -76,6 +77,8 @@ function ctime:updateTimes()
         end
     end
 
+    self.lastUpdate = now
+
     if table.IsEmpty( batch ) then return end
 
     logger:debug( "Updating " .. table.Count( batch ) .. " sessions:" )
@@ -83,7 +86,6 @@ function ctime:updateTimes()
 
     storage:UpdateBatch( batch )
     self:broadcastTimes()
-    self.lastUpdate = now
 end
 
 function ctime:startTimer()
@@ -105,21 +107,43 @@ function ctime:initPlayer( ply )
     local now = getNow()
     local steamID = ply:SteamID64()
 
-    storage:PlayerInit( ply, now, function( data )
-        local totalTime = data.totalTime
-        local sessionID = data.sessionID
+    local function setupPly( totalTime, existed )
+        local sessionTotalTime = totalTime + ( getNow() - now )
 
-        ctime.sessionIDs[steamID] = sessionID
-        ctime.totalTimes[steamID] = totalTime
-        steamIDToPly[steamID] = ply
+        local initialTime = {
+            seconds = 0,
 
-        logger:debug( "Player " .. ply:GetName() .. " has a total time of " .. tostring( totalTime ) .. " at " .. now )
+            add = function( this, seconds )
+                this.seconds = this.seconds + seconds
+            end,
 
-        self.sessions[steamID] = {
-            joined = now
+            set = function( this, seconds )
+                this.seconds = seconds
+            end
         }
 
-        ctime:broadcastPlayerTime( ply, totalTime, now, 0 )
+        hook.Run( "CFC_Time_PlayerInitialTime", ply, existed, initialTime )
+        sessionTotalTime = sessionTotalTime + initialTime.seconds
+
+        ctime.totalTimes[steamID] = sessionTotalTime
+        ctime:broadcastPlayerTime( ply, sessionTotalTime, now, 0 )
+    end
+
+    storage:PlayerInit( ply, now, function( data )
+        local userExisted = data.userExisted
+        local sessionID = data.sessionID
+
+        steamIDToPly[steamID] = ply
+        ctime.sessionIDs[steamID] = sessionID
+        ctime.sessions[steamID] = { joined = now }
+
+        if not userExisted then
+            return setupPly( 0, false )
+        end
+
+        storage:GetPlayerTime( steamID, function( total )
+            setupPly( total, true )
+        end )
     end )
 end
 
@@ -140,7 +164,7 @@ function ctime:cleanupPlayer( ply )
         return
     end
 
-    self.sessions[steamID].departed = getNow()
+    self.sessions[steamID].departed = now
 end
 
 hook.Add( "Think", "CFC_Time_Init", function()

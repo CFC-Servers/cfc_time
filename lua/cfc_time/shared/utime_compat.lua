@@ -23,10 +23,10 @@ function plyMeta:GetUTimeTotalTime()
 end
 
 if SERVER then
-    CFCTime.utimeCompat = {}
-    compatability = CFCTime.utimeCompat
+    CFCTime.utimeCompatability = {}
+    local compat = CFCTime.utimeCompatability
 
-    function compatability:MigratePlayerFromUtime( ply )
+    function compat:MigratePlayerFromUtime( ply )
         local steamID = ply:SteamID64()
         local uniqueId = ply:UniqueID()
 
@@ -47,8 +47,11 @@ if SERVER then
         return totalTime
     end
 
-    hook.Add( "CFC_Time_NewPlayer", "CFC_Time_UtimeCompat", function( ply )
-        compatability:MigratePlayerFromUtime( ply )
+    hook.Add( "CFC_Time_PlayerInitialTime", "CFC_Time_UtimeCompat", function( ply, firstVisit, timeStruct )
+        if not firstVisit then return end
+
+        local totalUtime = compat:MigratePlayerFromUtime( ply )
+        timeStruct:add( totalUtime )
     end )
 
     hook.Add( "CFC_Time_PlayerTimeUpdated", "CFC_Time_UtimeCompat", function( ply, totalTime, joined )
