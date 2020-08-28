@@ -107,7 +107,7 @@ function ctime:initPlayer( ply )
     local now = getNow()
     local steamID = ply:SteamID64()
 
-    local function setupPly( totalTime, existed )
+    local function setupPly( totalTime, firstVisit )
         local sessionTotalTime = totalTime + ( getNow() - now )
 
         local initialTime = {
@@ -122,7 +122,7 @@ function ctime:initPlayer( ply )
             end
         }
 
-        hook.Run( "CFC_Time_PlayerInitialTime", ply, existed, initialTime )
+        hook.Run( "CFC_Time_PlayerInitialTime", ply, firstVisit, initialTime )
         sessionTotalTime = sessionTotalTime + initialTime.seconds
 
         ctime.totalTimes[steamID] = sessionTotalTime
@@ -130,14 +130,14 @@ function ctime:initPlayer( ply )
     end
 
     storage:PlayerInit( ply, now, function( data )
-        local userExisted = data.userExisted
+        local firstVisit = data.firstVisit
         local sessionID = data.sessionID
 
         steamIDToPly[steamID] = ply
         ctime.sessionIDs[steamID] = sessionID
         ctime.sessions[steamID] = { joined = now }
 
-        if not userExisted then
+        if not firstVisit then
             return setupPly( 0, false )
         end
 
