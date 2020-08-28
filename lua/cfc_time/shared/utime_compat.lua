@@ -1,6 +1,7 @@
 -- We create a mock Utime so addons that require it think we have it
 Utime = {}
 
+local logger = CFCTime.Logger
 local plyMeta = FindMetaTable( "Player" )
 
 function plyMeta:GetUTime()
