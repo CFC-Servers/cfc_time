@@ -116,7 +116,7 @@ function storage:GetMaxSessionTime( callback )
     query:start()
 end
 
-function storage:SetMaxSessionTime()
+function storage:CacheMaxSessionDuration()
     self:GetMaxSessionTime(
         function( maxSessionTime )
             logger:debug( "Setting max session duration to: " .. maxSessionTime )
@@ -246,7 +246,7 @@ function storage.database:onConnected()
     transaction:addQuery( storage:SessionCleanupQuery() )
 
     transaction.onSuccess = function()
-        storage:SetMaxSessionTime()
+        storage:CacheMaxSessionDuration()
         storage:PrepareStatements()
     end
 
@@ -300,7 +300,7 @@ end
 function storage:CreateSession( callback, steamID, sessionStart, sessionEnd, sessionDuration )
     local maxDuration = self.MAX_SESSION_DURATION
     local sessionsCount = math.ceil( sessionDuration / maxDuration )
-    if sessionsCount == math.huge then sessionsCount = 1 end
+    sessionsCount = math.max( 1, sessionsCount )
 
     logger:debug( "[" .. tostring( steamID ) .. "] Creating " .. tostring( sessionsCount ) .. " sessions to accomodate duration of: " .. tostring( sessionDuration ) )
 
