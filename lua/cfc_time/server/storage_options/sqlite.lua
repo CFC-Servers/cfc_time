@@ -157,7 +157,7 @@ function storage:PlayerInit( ply, sessionStart, callback )
 
     sql.Begin()
 
-    local firstVisit = self:QueryGetUser( steamID ) == nil
+    local isFirstVisit = self:QueryGetUser( steamID ) == nil
     self:QueryCreateUser( steamID )
     self:QueryCreateSession( steamID, sessionStart, SQL_NULL, 0 )
 
@@ -166,7 +166,7 @@ function storage:PlayerInit( ply, sessionStart, callback )
     local sessionID = tonumber( self:QueryLatestSessionId()[1]["last_insert_rowid()"] )
 
     local response = {
-        firstVisit = firstVisit,
+        isFirstVisit = isFirstVisit,
         sessionID = sessionID
     }
 
