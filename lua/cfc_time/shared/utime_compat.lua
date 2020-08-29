@@ -44,7 +44,7 @@ if SERVER then
         local sessionStart = lastVisit - totalTime
         local sessionEnd = lastVisit
 
-        CFCTime.Storage:CreateSession( nil, steamID, sessionStart, sessionEnd, totalTime )
+        CFCTime.Storage:CreateSession( steamID, sessionStart, sessionEnd, totalTime )
 
         CFCTime.Logger:info( "Player " .. ply:GetName() .. "[" .. steamID .. "] migrated from UTime with existing time of " .. totalTime )
 

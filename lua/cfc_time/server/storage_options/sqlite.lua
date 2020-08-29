@@ -144,10 +144,8 @@ function storage:GetTotalTime( steamID, callback )
     return sum
 end
 
-function storage:CreateSession( callback, steamID, sessionStart, sessionEnd, duration )
-    local newSession = self:QueryCreateSession( steamID, sessionStart, sessionEnd, duration )
-
-    if callback then callback( newSession ) end
+function storage:CreateSession( steamID, sessionStart, sessionEnd, duration )
+    self:QueryCreateSession( steamID, sessionStart, sessionEnd, duration )
 end
 
 function storage:PlayerInit( ply, sessionStart, callback )
