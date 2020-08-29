@@ -103,7 +103,7 @@ function storage:GetMaxSessionTime( callback )
         return MAX_SESSION_DURATIONS[column][signed and "signed" or "unsigned"]
     end
 
-    query.onSucces = function( _, data )
+    query.onSuccess = function( _, data )
         if data then
             logger:debug( "Session duration query result", data )
         end
