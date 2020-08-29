@@ -304,12 +304,16 @@ function storage:CreateSession( steamID, sessionStart, sessionEnd, sessionDurati
 
     logger:debug( "[" .. tostring( steamID ) .. "] Creating " .. tostring( sessionsCount ) .. " sessions to accomodate duration of: " .. tostring( sessionDuration ) )
 
+
     local function addSession( duration, newStart, newEnd )
         local debugLine = "Queueing new session of duration: %d ( start: %d | end: %d )"
         logger:debug( string.format( debugLine, duration, newStart, newEnd ) )
 
+        local newSessionTransaction = self:InitTransaction()
         local newSession = self:Prepare( "newSession", nil, steamID, newStart, newEnd, duration )
-        newSession:start()
+
+        newSessionTransaction:addQuery( newSession )
+        newSessionTransaction:start()
     end
 
     for i = 1, sessionsCount do
