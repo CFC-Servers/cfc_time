@@ -299,7 +299,7 @@ end
 
 function storage:CreateSession( callback, steamID, sessionStart, sessionEnd, sessionDuration )
     local maxDuration = self.MAX_SESSION_DURATION
-    local sessionsCount = math.ceil( maxDuration / sessionDuration )
+    local sessionsCount = math.ceil( sessionDuration / maxDuration )
     if sessionsCount == math.huge then sessionsCount = 1 end
 
     logger:debug( "[" .. tostring( steamID ) .. "] Creating " .. tostring( sessionsCount ) .. " sessions to accomodate duration of: " .. tostring( sessionDuration ) )
@@ -320,7 +320,7 @@ function storage:CreateSession( callback, steamID, sessionStart, sessionEnd, ses
     for i = 1, sessionsCount do
         local usedDuration = maxDuration * ( i - 1 )
 
-        local newDuration = sessionDuration - usedDuration
+        local newDuration = math.min( sessionDuration - usedDuration, maxDuration )
         local newStart = sessionStart + usedDuration
         local newEnd = newStart + newDuration
 
