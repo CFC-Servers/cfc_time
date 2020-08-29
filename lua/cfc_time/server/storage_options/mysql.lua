@@ -311,7 +311,7 @@ function storage:CreateSession( callback, steamID, sessionStart, sessionEnd, ses
 
     local function addSession( duration, newStart, newEnd )
         local debugLine = "Queueing new session of duration: %d ( start: %d | end: %d )"
-        logger.debug( string.format( debugLine, duration, newStart, newEnd ) )
+        logger:debug( string.format( debugLine, duration, newStart, newEnd ) )
 
         local newSession = self:Prepare( "newSession", nil, steamID, newStart, newEnd, duration )
         transaction:addQuery( newSession )
