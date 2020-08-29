@@ -99,10 +99,15 @@ function storage:GetMaxSessionTime( callback )
         -- false
         local signed = spl[2] ~= "unsigned"
 
+        logger:debug( "Getting max session duration for column: [" .. column .. "] (signed: " .. tostring( signed ) .. ")" )
         return MAX_SESSION_DURATIONS[column][signed and "signed" or "unsigned"]
     end
 
     query.onSucces = function( _, data )
+        if data then
+            logger:debug( "Session duration query result", data )
+        end
+
         local maxTime = maxSessionTime( data )
 
         callback( maxTime )
@@ -164,6 +169,10 @@ function storage:AddPreparedStatement( name, query )
 
     statement.onError = function( _, err, errQuery )
         logger:error( "An error has occured in a prepared statement!", err, errQuery )
+    end
+
+    statement.onSuccess = function()
+        logger:debug( "Created prepared statement of name: " .. name .. " with query: [[ " .. query .. " ]]" )
     end
 
     self.preparedQueries[name] = statement
@@ -237,8 +246,8 @@ function storage.database:onConnected()
     transaction:addQuery( storage:SessionCleanupQuery() )
 
     transaction.onSuccess = function()
-        storage:PrepareStatements()
         storage:SetMaxSessionTime()
+        storage:PrepareStatements()
     end
 
     transaction:start()
@@ -291,6 +300,7 @@ end
 function storage:CreateSession( callback, steamID, sessionStart, sessionEnd, sessionDuration )
     local maxDuration = self.MAX_SESSION_DURATION
     local sessionsCount = math.ceil( maxDuration / sessionDuration )
+    if sessionsCount == math.huge then sessionsCount = 1 end
 
     logger:debug( "[" .. tostring( steamID ) .. "] Creating " .. tostring( sessionsCount ) .. " sessions to accomodate duration of: " .. tostring( sessionDuration ) )
 
