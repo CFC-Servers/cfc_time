@@ -51,8 +51,8 @@ if SERVER then
         return totalTime
     end
 
-    hook.Add( "CFC_Time_PlayerInitialTime", "CFC_Time_UtimeCompat", function( ply, firstVisit, timeStruct )
-        if not firstVisit then return end
+    hook.Add( "CFC_Time_PlayerInitialTime", "CFC_Time_UtimeCompat", function( ply, isFirstVisit, timeStruct )
+        if not isFirstVisit then return end
 
         logger:debug( "[UtimeCompat] Received PlayerInitialTime hook for first-time player - migrating time!")
 

@@ -19,6 +19,34 @@ storage.database = mysqloo.connect(
 )
 
 storage.preparedQueries = {}
+storage.MAX_SESSION_DURATION = nil
+
+local MAX_SESSION_DURATIONS = {
+    tinyint = {
+        signed = 127,
+        unsigned = 255
+    },
+
+    smallint = {
+        signed = 32767,
+        unsigned = 65535
+    },
+
+    mediumint = {
+        signed = 8388607,
+        unsigned = 16777215
+    },
+
+    int = {
+        signed = 2147483647,
+        unsigned = 4294967295
+    },
+
+    bigint = {
+        signed = math.huge,
+        unsigned = math.huge
+    }
+}
 
 function storage:InitTransaction()
     local transaction = self.database:createTransaction()
@@ -38,6 +66,56 @@ function storage:InitQuery( rawQuery )
     end
 
     return query
+end
+
+function storage:GetMaxSessionTime( callback )
+    local queryStr = [[
+        SELECT COLUMN_TYPE
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_NAME = "sessions"
+        AND COLUMN_NAME = "duration"
+    ]]
+
+    local query = self:InitQuery( queryStr )
+
+    local maxSessionTime = function( data )
+        -- e.g.
+        -- "mediumint(8)"
+        -- "mediumint(8) unsigned"
+        local columnData = data[1].COLUMN_TYPE
+
+        -- e.g.
+        -- { [1] = "mediumint(8)" }
+        -- { [1] = "mediumint(8)", [2] = "unsigned" }
+        local spl = string.Split( columnData, " " )
+
+        -- e.g.
+        -- "mediumint"
+        -- "mediumint"
+        local column = string.Split( spl[1], "(" )[1]
+
+        -- e.g.
+        -- true
+        -- false
+        local signed = spl[2] ~= "unsigned"
+
+        return MAX_SESSION_DURATIONS[column][signed and "signed" or "unsigned"]
+    end
+
+    query.onSucces = function( _, data )
+        local maxTime = maxSessionTime( data )
+
+        callback( maxTime )
+    end
+end
+
+function storage:SetMaxSessionTime()
+    self:GetMaxSessionTime(
+        function( maxSessionTime )
+            logger:debug( "Setting max session duration to: " .. maxSessionTime )
+            storage.MAX_SESSION_DURATION = maxSessionTime
+        end
+    )
 end
 
 function storage:CreateUsersQuery()
@@ -83,7 +161,7 @@ function storage:AddPreparedStatement( name, query )
     local statement = self.database:prepare( query )
 
     statement.onError = function( _, err, errQuery )
-        logger:error( err, errQuery )
+        logger:error( "An error has occured in a prepared statement!", err, errQuery )
     end
 
     self.preparedQueries[name] = statement
@@ -158,6 +236,7 @@ function storage.database:onConnected()
 
     transaction.onSuccess = function()
         storage:PrepareStatements()
+        storage:SetMaxSessionTime()
     end
 
     transaction:start()
@@ -207,9 +286,29 @@ function storage:GetTotalTime( steamID, callback )
     query:start()
 end
 
-function storage:CreateSession( callback, steamID, sessionStart, sessionEnd, duration )
-    local newSession = self:Prepare( "newSession", callback, steamID, sessionStart, sessionEnd, duration )
-    newSession:start()
+function storage:CreateSession( callback, steamID, sessionStart, sessionEnd, sessionDuration )
+    local maxDuration = self.MAX_SESSION_DURATION
+    local sessionsCount = math.ceil( maxDuration / sessionDuration )
+
+    local transaction = self:InitTransaction()
+    transaction.onSuccess = function()
+        if callback then callback() end
+    end
+
+    local function addSession( duration, newStart, newEnd )
+        local newSession = self:Prepare( "newSession", nil, steamID, newStart, newEnd, duration )
+        transaction:addQuery( newSession )
+    end
+
+    for i = 1, sessionsCount do
+        local newDuration = sessionDuration - ( maxDuration * ( i - 1 ) )
+        local newStart = sessionStart + ( maxDuration * ( i - 1 ) )
+        local newEnd = newStart + newDuration
+
+        addSession( newDuration, newStart, newEnd )
+    end
+
+    transaction:start()
 end
 
 -- Takes a player, a session start timestamp, and a callback, then:
@@ -233,12 +332,12 @@ function storage:PlayerInit( ply, sessionStart, callback )
     transaction.onSuccess = function()
         logger:debug( "PlayerInit transaction successful!" )
 
-        local firstVisit = newUser:lastInsert() ~= 0
+        local isFirstVisit = newUser:lastInsert() ~= 0
         local sessionIDResult = newSession:lastInsert()
         logger:debug( "NewUser last inserted index: " .. tostring( newUser:lastInsert() ) )
 
         local data =  {
-            firstVisit = firstVisit,
+            isFirstVisit = isFirstVisit,
             sessionID = sessionIDResult
         }
 
