@@ -297,24 +297,19 @@ function storage:GetTotalTime( steamID, callback )
     query:start()
 end
 
-function storage:CreateSession( callback, steamID, sessionStart, sessionEnd, sessionDuration )
+function storage:CreateSession( steamID, sessionStart, sessionEnd, sessionDuration )
     local maxDuration = self.MAX_SESSION_DURATION
     local sessionsCount = math.ceil( sessionDuration / maxDuration )
     sessionsCount = math.max( 1, sessionsCount )
 
     logger:debug( "[" .. tostring( steamID ) .. "] Creating " .. tostring( sessionsCount ) .. " sessions to accomodate duration of: " .. tostring( sessionDuration ) )
 
-    local transaction = self:InitTransaction()
-    transaction.onSuccess = function()
-        if callback then callback() end
-    end
-
     local function addSession( duration, newStart, newEnd )
         local debugLine = "Queueing new session of duration: %d ( start: %d | end: %d )"
         logger:debug( string.format( debugLine, duration, newStart, newEnd ) )
 
         local newSession = self:Prepare( "newSession", nil, steamID, newStart, newEnd, duration )
-        transaction:addQuery( newSession )
+        newSession:start()
     end
 
     for i = 1, sessionsCount do
@@ -326,8 +321,6 @@ function storage:CreateSession( callback, steamID, sessionStart, sessionEnd, ses
 
         addSession( newDuration, newStart, newEnd )
     end
-
-    transaction:start()
 end
 
 -- Takes a player, a session start timestamp, and a callback, then:
