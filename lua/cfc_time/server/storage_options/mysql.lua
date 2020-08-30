@@ -1,240 +1,24 @@
 require( "mysqloo" )
+include( "utils/mysql.lua" )
 
 local storage = CFCTime.Storage
 local logger = CFCTime.Logger
 local config = CFCTime.Config
 
 config.setDefaults{
-    mysql_host = "127.0.0.1",
-    mysql_username = "",
-    mysql_password = "",
-    mysql_database = "cfc_time"
+    MYSQL_HOST = "127.0.0.1",
+    MYSQL_USERNAME = "",
+    MYSQL_PASSWORD = "",
+    MYSQL_DATABASE = "cfc_time",
+    MYSQL_SESSION_DURATION_COLUMN_TYPE = "MEDIUMINT UNSIGNED"
 }
 
 storage.database = mysqloo.connect(
-    config.get( "mysql_host" ),
-    config.get( "mysql_username" ),
-    config.get( "mysql_password" ),
-    config.get( "mysql_database" )
+    config.get( "MYSQL_HOST" ),
+    config.get( "MYSQL_USERNAME" ),
+    config.get( "MYSQL_PASSWORD" ),
+    config.get( "MYSQL_DATABASE" )
 )
-
-storage.preparedQueries = {}
-storage.MAX_SESSION_DURATION = nil
-
-local MAX_SESSION_DURATIONS = {
-    tinyint = {
-        signed = 127,
-        unsigned = 255
-    },
-
-    smallint = {
-        signed = 32767,
-        unsigned = 65535
-    },
-
-    mediumint = {
-        signed = 8388607,
-        unsigned = 16777215
-    },
-
-    int = {
-        signed = 2147483647,
-        unsigned = 4294967295
-    },
-
-    bigint = {
-        signed = math.huge,
-        unsigned = math.huge
-    }
-}
-
-function storage:InitTransaction()
-    local transaction = self.database:createTransaction()
-
-    transaction.onError = function( _, err )
-        logger:error( err )
-    end
-
-    return transaction
-end
-
-function storage:InitQuery( rawQuery )
-    local query = self.database:query( rawQuery )
-
-    query.onError = function( _, err, errQuery )
-        logger:error( err, errQuery )
-    end
-
-    return query
-end
-
-function storage:GetMaxSessionTime( callback )
-    local queryStr = [[
-        SELECT COLUMN_TYPE
-        FROM INFORMATION_SCHEMA.COLUMNS
-        WHERE TABLE_NAME = "sessions"
-        AND COLUMN_NAME = "duration"
-    ]]
-
-    local query = self:InitQuery( queryStr )
-
-    local maxSessionTime = function( data )
-        -- e.g.
-        -- "mediumint(8)"
-        -- "mediumint(8) unsigned"
-        local columnData = data[1].COLUMN_TYPE
-
-        -- e.g.
-        -- { [1] = "mediumint(8)" }
-        -- { [1] = "mediumint(8)", [2] = "unsigned" }
-        local spl = string.Split( columnData, " " )
-
-        -- e.g.
-        -- "mediumint"
-        -- "mediumint"
-        local column = string.Split( spl[1], "(" )[1]
-
-        -- e.g.
-        -- true
-        -- false
-        local signed = spl[2] ~= "unsigned"
-
-        logger:debug( "Getting max session duration for column: [" .. column .. "] (signed: " .. tostring( signed ) .. ")" )
-        return MAX_SESSION_DURATIONS[column][signed and "signed" or "unsigned"]
-    end
-
-    query.onSuccess = function( _, data )
-        if data then
-            logger:debug( "Session duration query result", data )
-        end
-
-        local maxTime = maxSessionTime( data )
-
-        callback( maxTime )
-    end
-
-    query:start()
-end
-
-function storage:CacheMaxSessionDuration()
-    self:GetMaxSessionTime(
-        function( maxSessionTime )
-            logger:debug( "Setting max session duration to: " .. maxSessionTime )
-            storage.MAX_SESSION_DURATION = maxSessionTime
-        end
-    )
-end
-
-function storage:CreateUsersQuery()
-    local createUsers = [[
-        CREATE TABLE IF NOT EXISTS users(
-            id       MEDIUMINT   UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-            steam_id VARCHAR(20) UNIQUE   NOT NULL,
-            INDEX    (steam_id)
-        );
-    ]]
-
-    return self.database:query( createUsers )
-end
-
-function storage:CreateSessionsQuery()
-    local createSessions = [[
-        CREATE TABLE IF NOT EXISTS sessions(
-            id       MEDIUMINT   UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-            realm    VARCHAR(10)          NOT NULL,
-            user_id  VARCHAR(20)          NOT NULL,
-            joined   INT         UNSIGNED NOT NULL,
-            departed INT         UNSIGNED,
-            duration MEDIUMINT   UNSIGNED NOT NULL DEFAULT 0,
-            FOREIGN KEY (user_id) REFERENCES users (steam_id) ON DELETE CASCADE
-        )
-    ]]
-
-    return self.database:query( createSessions )
-end
-
-function storage:SessionCleanupQuery()
-    local fixMissingDepartedTimes = string.format( [[
-        UPDATE sessions
-        SET departed = (joined + duration)
-        WHERE departed IS NULL
-        AND realm = '%s'
-    ]], self.realm )
-
-    return self.database:query( fixMissingDepartedTimes )
-end
-
-function storage:AddPreparedStatement( name, query )
-    local statement = self.database:prepare( query )
-
-    statement.onError = function( _, err, errQuery )
-        logger:error( "An error has occured in a prepared statement!", err, errQuery )
-    end
-
-    statement.onSuccess = function()
-        logger:debug( "Created prepared statement of name: " .. name .. " with query: [[ " .. query .. " ]]" )
-    end
-
-    self.preparedQueries[name] = statement
-end
-
-function storage:PrepareStatements()
-    logger:info( "Constructing prepared statements..." )
-
-    local realm = self.realm
-
-    local newUser = "INSERT INTO users (steam_id) VALUES(?) ON DUPLICATE KEY UPDATE id=id"
-
-    local newSession = string.format( [[
-        INSERT INTO sessions (user_id, joined, departed, duration, realm) VALUES(?, ?, ?, ?, '%s')
-    ]], realm )
-
-    local totalTime = string.format( [[
-        SELECT SUM(duration)
-        FROM sessions
-        WHERE user_id = ?
-        AND realm = '%s'
-        FOR UPDATE
-    ]], realm )
-
-    local sessionUpdate = [[
-        UPDATE sessions
-        SET
-          joined = IFNULL(?, joined),
-          departed = IFNULL(?, departed),
-          duration = IFNULL(?, duration)
-        WHERE
-          id = ?
-    ]]
-
-    self:AddPreparedStatement( "newUser", newUser )
-    self:AddPreparedStatement( "newSession", newSession )
-    self:AddPreparedStatement( "totalTime", totalTime )
-    self:AddPreparedStatement( "sessionUpdate", sessionUpdate )
-end
-
-function storage:Prepare( statementName, onSuccess, ... )
-    local query = self.preparedQueries[statementName]
-    query:clearParameters()
-
-    for k, v in pairs( { ... } ) do
-        if isnumber( v ) then
-            query:setNumber( k, v )
-        elseif isstring( v ) then
-            query:setString( k, v )
-        elseif isbool( v ) then
-            query:setBoolean( k, v )
-        elseif v == nil then
-            query:setNull( k )
-        else
-            error( "Wrong data type passed to Prepare statement!: " .. v )
-        end
-    end
-
-    if onSuccess then query.onSuccess = onSuccess end
-
-    return query
-end
 
 function storage.database:onConnected()
     logger:info( "DB successfully connected! Beginning init..." )
@@ -254,6 +38,7 @@ function storage.database:onConnected()
 end
 
 function storage.database:onConnectionFailed( err )
+    -- TODO: Test this
     logger:error( "Failed to connect to database!" )
     logger:fatal( err )
 end
@@ -297,17 +82,29 @@ function storage:GetTotalTime( steamID, callback )
     query:start()
 end
 
-function storage:CreateSession( steamID, sessionStart, sessionEnd, sessionDuration )
+function storage:CreateSession( steamID, sessionStart, sessionDuration )
     local maxDuration = self.MAX_SESSION_DURATION
     local sessionsCount = math.ceil( sessionDuration / maxDuration )
     sessionsCount = math.max( 1, sessionsCount )
 
-    logger:debug( "[" .. tostring( steamID ) .. "] Creating " .. tostring( sessionsCount ) .. " sessions to accomodate duration of: " .. tostring( sessionDuration ) )
-
+    logger:debug(
+        string.format(
+            "[%s] Creating %d sessions to accomodate duration of %d",
+            steamID,
+            sessionsCount,
+            sessionDuration
+        )
+    )
 
     local function addSession( duration, newStart, newEnd )
-        local debugLine = "Queueing new session of duration: %d ( start: %d | end: %d )"
-        logger:debug( string.format( debugLine, duration, newStart, newEnd ) )
+        logger:debug(
+            string.format(
+                "Queueing new session of duration: %d ( start: %d | end: %d )",
+                duration,
+                newStart,
+                newEnd
+            )
+        )
 
         local newSessionTransaction = self:InitTransaction()
         local newSession = self:Prepare( "newSession", nil, steamID, newStart, newEnd, duration )
@@ -331,8 +128,8 @@ end
 --  - Creates a new user (if needed)
 --  - Creates a new session with given values
 -- Calls callback with a structure containing:
+--  - isFirstVisit (boolean describing if this is the player's first visit to the server)
 --  - sessionID (the id of the newly created session)
---  - totalTime (the calculated total playtime)
 function storage:PlayerInit( ply, sessionStart, callback )
     local steamID = ply:SteamID64()
 

@@ -4,13 +4,13 @@ local config = CFCTime.Config
 local configFilename = "cfc_time/config.json"
 
 -- other files should access this config using the 'get' function
--- CFCTime.ctime.Config.get("updateInterval")
+-- CFCTime.ctime.Config.get("update_interval")
 
 -- defaults
 config.values = {
-    updateInterval = 10,
-    storageType = "sqlite",
-    realm = "default"
+    UPDATE_INTERVAL = 10,
+    STORAGE_TYPE = "sqlite",
+    REALM = "default"
 }
 
 function config.save()
