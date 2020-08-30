@@ -42,6 +42,13 @@ function ctime:broadcastTimes( sessions )
     end
 end
 
+function ctime:untrackPlayer( steamID )
+    self.sessions[steamID] = nil
+    self.sessionIDs[steamID] = nil
+    self.totalTimes[steamID] = nil
+    steamIDToPly[steamID] = nil
+end
+
 function ctime:updateTimes()
     local batch = {}
     local now = getNow()
@@ -54,10 +61,7 @@ function ctime:updateTimes()
         local departed = data.departed
 
         if departed and departed < self.lastUpdate then
-            self.sessions[steamID] = nil
-            self.sessionIDs[steamID] = nil
-            self.totalTimes[steamID] = nil
-            steamIDToPly[steamID] = nil
+            self:untrackPlayer( steamID )
             isValid = false
         end
 
@@ -93,7 +97,7 @@ function ctime:startTimer()
 
     timer.Create(
         self.updateTimerName,
-        CFCTime.Config.get( "updateInterval" ),
+        CFCTime.Config.get( "UPDATE_INTERVAL" ),
         0,
         function() ctime:updateTimes() end
     )
