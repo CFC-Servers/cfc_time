@@ -9,8 +9,7 @@ config.setDefaults{
     MYSQL_HOST = "127.0.0.1",
     MYSQL_USERNAME = "",
     MYSQL_PASSWORD = "",
-    MYSQL_DATABASE = "cfc_time",
-    MYSQL_SESSION_DURATION_COLUMN_TYPE = "MEDIUMINT UNSIGNED"
+    MYSQL_DATABASE = "cfc_time"
 }
 
 storage.database = mysqloo.connect(
@@ -30,7 +29,6 @@ function storage.database:onConnected()
     transaction:addQuery( storage:SessionCleanupQuery() )
 
     transaction.onSuccess = function()
-        storage:CacheMaxSessionDuration()
         storage:PrepareStatements()
     end
 
@@ -84,8 +82,7 @@ end
 
 function storage:CreateSession( steamID, sessionStart, sessionDuration )
     local maxDuration = self.MAX_SESSION_DURATION
-    local sessionsCount = math.ceil( sessionDuration / maxDuration )
-    sessionsCount = math.max( 1, sessionsCount )
+    local sessionsCount = math.max( 1, math.ceil( sessionDuration / maxDuration ) )
 
     logger:debug(
         string.format(
@@ -106,6 +103,8 @@ function storage:CreateSession( steamID, sessionStart, sessionDuration )
             )
         )
 
+        -- Because we use the same prepared query repeatedly, we need to run them in individual
+        -- transactions or they'll all use the values given to the last one. This is a weird bug in MySQLOO
         local newSessionTransaction = self:InitTransaction()
         local newSession = self:Prepare( "newSession", nil, steamID, newStart, newEnd, duration )
 
@@ -124,12 +123,6 @@ function storage:CreateSession( steamID, sessionStart, sessionDuration )
     end
 end
 
--- Takes a player, a session start timestamp, and a callback, then:
---  - Creates a new user (if needed)
---  - Creates a new session with given values
--- Calls callback with a structure containing:
---  - isFirstVisit (boolean describing if this is the player's first visit to the server)
---  - sessionID (the id of the newly created session)
 function storage:PlayerInit( ply, sessionStart, callback )
     local steamID = ply:SteamID64()
 
@@ -146,12 +139,12 @@ function storage:PlayerInit( ply, sessionStart, callback )
         logger:debug( "PlayerInit transaction successful!" )
 
         local isFirstVisit = newUser:lastInsert() ~= 0
-        local sessionIDResult = newSession:lastInsert()
+        local sessionID = newSession:lastInsert()
         logger:debug( "NewUser last inserted index: " .. tostring( newUser:lastInsert() ) )
 
         local data =  {
             isFirstVisit = isFirstVisit,
-            sessionID = sessionIDResult
+            sessionID = sessionID
         }
 
         callback( data )

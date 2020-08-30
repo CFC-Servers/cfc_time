@@ -2,34 +2,10 @@ local storage = CFCTime.Storage
 local logger = CFCTime.Logger
 local config = CFCTime.Config
 
-storage.MAX_SESSION_DURATION = nil
+storage.preparedQueries = {}
 
-local MAX_SESSION_DURATIONS = {
-    tinyint = {
-        signed = 127,
-        unsigned = 255
-    },
-
-    smallint = {
-        signed = 32767,
-        unsigned = 65535
-    },
-
-    mediumint = {
-        signed = 8388607,
-        unsigned = 16777215
-    },
-
-    int = {
-        signed = 2147483647,
-        unsigned = 4294967295
-    },
-
-    bigint = {
-        signed = math.huge,
-        unsigned = math.huge
-    }
-}
+-- Maximum unsigned integer for a mysql mediumint
+storage.MAX_SESSION_DURATION = 16777215
 
 function storage:InitTransaction()
     local transaction = self.database:createTransaction()
@@ -49,65 +25,6 @@ function storage:InitQuery( rawQuery )
     end
 
     return query
-end
-
-storage.preparedQueries = {}
-
-function storage:GetMaxSessionTime( callback )
-    local queryStr = [[
-        SELECT COLUMN_TYPE
-        FROM INFORMATION_SCHEMA.COLUMNS
-        WHERE TABLE_NAME = "sessions"
-        AND COLUMN_NAME = "duration"
-    ]]
-
-    local query = self:InitQuery( queryStr )
-
-    local maxSessionTime = function( data )
-        -- e.g.
-        -- "mediumint(8)"
-        -- "mediumint(8) unsigned"
-        local columnData = data[1].COLUMN_TYPE
-
-        -- e.g.
-        -- { [1] = "mediumint(8)" }
-        -- { [1] = "mediumint(8)", [2] = "unsigned" }
-        local spl = string.Split( columnData, " " )
-
-        -- e.g.
-        -- "mediumint"
-        -- "mediumint"
-        local column = string.Split( spl[1], "(" )[1]
-
-        -- e.g.
-        -- true
-        -- false
-        local signed = spl[2] ~= "unsigned"
-
-        logger:debug( "Getting max session duration for column: [" .. column .. "] (signed: " .. tostring( signed ) .. ")" )
-        return MAX_SESSION_DURATIONS[column][signed and "signed" or "unsigned"]
-    end
-
-    query.onSuccess = function( _, data )
-        if data then
-            logger:debug( "Session duration query result", data )
-        end
-
-        local maxTime = maxSessionTime( data )
-
-        callback( maxTime )
-    end
-
-    query:start()
-end
-
-function storage:CacheMaxSessionDuration()
-    self:GetMaxSessionTime(
-        function( maxSessionTime )
-            logger:debug( "Setting max session duration to: " .. maxSessionTime )
-            storage.MAX_SESSION_DURATION = maxSessionTime
-        end
-    )
 end
 
 function storage:CreateUsersQuery()
@@ -130,7 +47,7 @@ function storage:CreateSessionsQuery()
             user_id  VARCHAR(20)          NOT NULL,
             joined   INT         UNSIGNED NOT NULL,
             departed INT         UNSIGNED,
-            duration %s                   NOT NULL DEFAULT 0,
+            duration MEDIUMINT   UNSIGNED NOT NULL DEFAULT 0,
             FOREIGN KEY (user_id) REFERENCES users (steam_id) ON DELETE CASCADE
         )
     ]], config.get( "MYSQL_SESSION_DURATION_COLUMN_TYPE" ) )
