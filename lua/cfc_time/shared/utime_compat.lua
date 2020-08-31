@@ -12,7 +12,7 @@ function plyMeta:GetUTime()
 end
 
 function plyMeta:GetUTimeStart()
-    return self:GetNWFloat( "CFC_Time_SessionStart", 0 )
+    return self:GetNWFloat( "UTimeStart", CurTime() )
 end
 
 function plyMeta:GetUTimeSessionTime()
