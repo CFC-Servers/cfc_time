@@ -98,8 +98,7 @@ function ctime:startTimer()
     local timeUpdater = function()
         local success, err = pcall( function() ctime:UpdateTimes() end )
         if not success then
-            logger:error( "Update times call failed with an error!" )
-            logger:fatal( err )
+            logger:fatal( "Update times call failed with an error!", err )
         end
 
     end
