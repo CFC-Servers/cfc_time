@@ -63,7 +63,7 @@ if SERVER then
         logger:debug( "[UtimeCompat] Received PlayerInitialTime hook for first-time player - migrating time!")
 
         local totalUtime = compat:MigratePlayerFromUtime( ply )
-        timeStruct:add( totalUtime )
+        timeStruct.add( totalUtime )
     end )
 
     hook.Add( "CFC_Time_PlayerTimeUpdated", "CFC_Time_UtimeCompat", function( ply, totalTime )
