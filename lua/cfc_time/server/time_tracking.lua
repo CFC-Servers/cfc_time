@@ -21,6 +21,13 @@ ctime.totalTimes = {}
 -- steamID64 = <player entity>
 local steamIDToPly = {}
 
+function ctime:untrackPlayer( steamID )
+    self.sessions[steamID] = nil
+    self.sessionIDs[steamID] = nil
+    self.totalTimes[steamID] = nil
+    steamIDToPly[steamID] = nil
+end
+
 function ctime:broadcastPlayerTime( ply, totalTime, joined, duration )
     ply:SetNWFloat( "CFC_Time_TotalTime", totalTime )
     ply:SetNWFloat( "CFC_Time_SessionStart", joined )
@@ -42,13 +49,6 @@ function ctime:broadcastTimes( sessions )
     end
 end
 
-function ctime:untrackPlayer( steamID )
-    self.sessions[steamID] = nil
-    self.sessionIDs[steamID] = nil
-    self.totalTimes[steamID] = nil
-    steamIDToPly[steamID] = nil
-end
-
 function ctime:updateTimes()
     local batch = {}
     local now = getNow()
@@ -61,6 +61,13 @@ function ctime:updateTimes()
         local departed = data.departed
 
         if departed and departed < self.lastUpdate then
+            logger:debug(
+                string.format(
+                    "Discarding player (%s) because they departed before the previous update",
+                    steamID
+                )
+            )
+
             self:untrackPlayer( steamID )
             isValid = false
         end
@@ -71,13 +78,23 @@ function ctime:updateTimes()
         end
 
         if isValid then
-            data.duration = sessionTime
-
             local sessionID = self.sessionIDs[steamID]
-            batch[sessionID] = data
-
             local newTotal = self.totalTimes[steamID] + timeDelta
-            self.totalTimes[steamID] = newTotal
+
+            local shouldUpdate = hook.Run( "CFC_Time_UpdatePlayerTime", steamID, timeDelta, newTotal )
+
+            if shouldUpdate == false then
+                logger:debug(
+                    string.format(
+                        "Ignoring player time update (%s) because something returned false on the update hook",
+                        steamID
+                    )
+                )
+            else
+                data.duration = sessionTime
+                batch[sessionID] = data
+                self.totalTimes[steamID] = newTotal
+            end
         end
     end
 
@@ -95,12 +112,12 @@ end
 function ctime:startTimer()
     logger:debug( "Starting timer" )
 
-    local timeUpdater = function()
+    local function timeUpdater()
         local success, err = pcall( function() ctime:updateTimes() end )
+
         if not success then
             logger:fatal( "Update times call failed with an error!", err )
         end
-
     end
 
     timer.Create(
@@ -112,6 +129,7 @@ function ctime:startTimer()
 end
 
 function ctime:stopTimer()
+    logger:warn( "Batch update timer stopped! Player time /will not/ be saved to the database!" )
     timer.Remove( self.updateTimerName )
 end
 
@@ -165,7 +183,14 @@ function ctime:cleanupPlayer( ply )
         return
     end
 
-    logger:debug( "Player " .. ply:GetName() .. " ( " .. steamID .. " ) left at " .. now )
+    logger:debug(
+        string.format(
+            "Player %s ( %s ) left at %d",
+            ply:GetName(),
+            steamID,
+            now
+        )
+    )
 
     if not self.sessions[steamID] then
         logger:error( "No pending update for above player, did they leave before database returned?" )
