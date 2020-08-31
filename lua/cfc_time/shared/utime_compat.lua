@@ -66,8 +66,8 @@ if SERVER then
         timeStruct:add( totalUtime )
     end )
 
-    hook.Add( "CFC_Time_PlayerTimeUpdated", "CFC_Time_UtimeCompat", function( ply, totalTime, joined )
+    hook.Add( "CFC_Time_PlayerTimeUpdated", "CFC_Time_UtimeCompat", function( ply, totalTime )
         ply:SetNWFloat( "TotalUTime", totalTime )
-        ply:SetNWFloat( "UTimeStart", joined )
+        ply:SetNWFloat( "UTimeStart", CurTime() )
     end )
 end
