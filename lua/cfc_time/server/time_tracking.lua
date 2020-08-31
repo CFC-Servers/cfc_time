@@ -95,11 +95,20 @@ end
 function ctime:startTimer()
     logger:debug( "Starting timer" )
 
+    local timeUpdater = function()
+        local success, err = pcall( function() ctime:UpdateTimes() end )
+        if not success then
+            logger:error( "Update times call failed with an error!" )
+            logger:fatal( err )
+        end
+
+    end
+
     timer.Create(
         self.updateTimerName,
         CFCTime.Config.get( "UPDATE_INTERVAL" ),
         0,
-        function() ctime:updateTimes() end
+        timeUpdater
     )
 end
 
@@ -114,17 +123,15 @@ function ctime:initPlayer( ply )
     local function setupPly( totalTime, isFirstVisit )
         local sessionTotalTime = totalTime + ( getNow() - now )
 
-        local initialTime = {
-            seconds = 0,
+        local initialTime = { seconds = 0 }
 
-            add = function( this, seconds )
-                this.seconds = this.seconds + seconds
-            end,
+        initialTime.add = function( seconds )
+            initialTime.seconds = initialTime.seconds + seconds
+        end
 
-            set = function( this, seconds )
-                this.seconds = seconds
-            end
-        }
+        initialTime.set = function( seconds )
+            initialTime.seconds = seconds
+        end
 
         hook.Run( "CFC_Time_PlayerInitialTime", ply, isFirstVisit, initialTime )
         sessionTotalTime = sessionTotalTime + initialTime.seconds
