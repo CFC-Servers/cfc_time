@@ -9,7 +9,9 @@ local getNow = os.time
 -- <steamID64> = { joined = <timestamp>, departed = <timestamp> | nil, duration = <float> }
 ctime.sessions = {}
 ctime.updateTimerName = "CFC_Time_UpdateTimer"
-ctime.lastUpdate = getNow()
+
+-- <steamID64> = <timestamp of last update for given player>
+ctime.lastUpdateTime = {}
 
 -- steamID64 = <database session ID>
 ctime.sessionIDs = {}
@@ -25,6 +27,7 @@ function ctime:untrackPlayer( steamID )
     self.sessions[steamID] = nil
     self.sessionIDs[steamID] = nil
     self.totalTimes[steamID] = nil
+    self.lastUpdateTime[steamID] = nil
     steamIDToPly[steamID] = nil
 end
 
@@ -36,8 +39,14 @@ function ctime:broadcastPlayerTime( ply, totalTime, joined, duration )
     hook.Run( "CFC_Time_PlayerTimeUpdated", ply, totalTime, joined, duration )
 end
 
-function ctime:broadcastTimes( sessions )
-    for steamID, totalTime in pairs( self.totalTimes ) do
+function ctime:broadcastTimes( only )
+    local times = self.totalTimes
+
+    if only then
+        times = { [only] = times[only] }
+    end
+
+    for steamID, totalTime in pairs( times ) do
         local ply = steamIDToPly[steamID]
 
         local session = self.sessions[steamID]
@@ -49,28 +58,23 @@ function ctime:broadcastTimes( sessions )
     end
 end
 
-function ctime:updateTimes()
+function ctime:updateTimes( only )
     local batch = {}
     local now = getNow()
-    local timeDelta = now - self.lastUpdate
+    local sessions = self.sessions
 
-    for steamID, data in pairs( self.sessions ) do
+    if only then
+        logger:debug( "Running updateTimes for only: " .. only )
+        sessions = { [only] = sessions[only] }
+    end
+
+    for steamID, data in pairs( sessions ) do
         local isValid = true
-
         local joined = data.joined
         local departed = data.departed
 
-        if departed and departed < self.lastUpdate then
-            logger:debug(
-                string.format(
-                    "Discarding player (%s) because they departed before the previous update",
-                    steamID
-                )
-            )
-
-            self:untrackPlayer( steamID )
-            isValid = false
-        end
+        local lastUpdate = self.lastUpdateTime[steamID]
+        local timeDelta = now - lastUpdate
 
         local sessionTime = ( departed or now ) - joined
         if sessionTime <= 0 then
@@ -96,9 +100,13 @@ function ctime:updateTimes()
                 self.totalTimes[steamID] = newTotal
             end
         end
-    end
 
-    self.lastUpdate = now
+        self.lastUpdateTime[steamID] = now
+
+        if departed then
+            self:untrackPlayer( steamID )
+        end
+    end
 
     if table.IsEmpty( batch ) then return end
 
@@ -106,7 +114,7 @@ function ctime:updateTimes()
     logger:debug( batch )
 
     storage:UpdateBatch( batch )
-    self:broadcastTimes()
+    self:broadcastTimes( only )
 end
 
 function ctime:startTimer()
@@ -126,11 +134,6 @@ function ctime:startTimer()
         0,
         timeUpdater
     )
-end
-
-function ctime:stopTimer()
-    logger:warn( "Batch update timer stopped! Player time /will not/ be saved to the database!" )
-    timer.Remove( self.updateTimerName )
 end
 
 function ctime:initPlayer( ply )
@@ -154,7 +157,7 @@ function ctime:initPlayer( ply )
         sessionTotalTime = sessionTotalTime + initialTime.seconds
 
         ctime.totalTimes[steamID] = sessionTotalTime
-        ctime:broadcastPlayerTime( ply, sessionTotalTime, now, 0 )
+        ctime:updateTimes( steamID )
     end
 
     storage:PlayerInit( ply, now, function( data )
@@ -164,6 +167,7 @@ function ctime:initPlayer( ply )
         steamIDToPly[steamID] = ply
         ctime.sessionIDs[steamID] = sessionID
         ctime.sessions[steamID] = { joined = now }
+        ctime.lastUpdateTime[steamID] = now
 
         if isFirstVisit then return setupPly( 0, true ) end
 
@@ -198,6 +202,7 @@ function ctime:cleanupPlayer( ply )
     end
 
     self.sessions[steamID].departed = now
+    self:updateTimes( steamID )
 end
 
 hook.Add( "Think", "CFC_Time_Init", function()
