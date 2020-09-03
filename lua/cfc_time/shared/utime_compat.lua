@@ -41,6 +41,18 @@ if SERVER then
 
         local totalTime, lastVisit = utimeData.totaltime, utimeData.lastvisit
 
+        if not totalTime or not lastVisit then
+            logger:info(
+                string.format(
+                    "Player %s [%s] had no existing UTime data",
+                    ply:GetName(),
+                    steamID
+                )
+            )
+
+            return
+        end
+
         local sessionStart = lastVisit - totalTime
 
         CFCTime.Storage:CreateSession( steamID, sessionStart, totalTime )
@@ -63,6 +75,9 @@ if SERVER then
         logger:debug( "[UtimeCompat] Received PlayerInitialTime hook for first-time player - migrating time!")
 
         local totalUtime = compat:MigratePlayerFromUtime( ply )
+
+        if not totalUtime then return end
+
         timeStruct.add( totalUtime )
     end )
 
