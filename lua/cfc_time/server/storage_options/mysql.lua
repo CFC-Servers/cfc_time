@@ -52,9 +52,9 @@ function storage:UpdateBatch( batchData )
     if not batchData then return end
     if table.IsEmpty( batchData ) then return end
 
-    local transaction = storage:InitTransaction()
-
     for sessionID, data in pairs( batchData ) do
+        local transaction = storage:InitTransaction()
+
         local query = self:Prepare(
             "sessionUpdate",
             nil,
@@ -65,9 +65,8 @@ function storage:UpdateBatch( batchData )
         )
 
         transaction:addQuery( query )
+        transaction:start()
     end
-
-    transaction:start()
 end
 
 function storage:GetTotalTime( steamID, callback )
