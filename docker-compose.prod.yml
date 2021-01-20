@@ -1,0 +1,17 @@
+version: "3.8"
+services:
+  db:
+    image: mysql
+    restart: always
+    ports:
+      - $CFC_TIME_MYSQL_PORT:3306
+    volumes:
+      # Lets you put a .sql dump into ./sql_mount and have mysql pick it up on init
+      - ./sql_mount:/docker-entrypoint-initdb.d
+      - $CFC_TIME_SQL_DIR:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: cfc_time
+      MYSQL_USER: cfc_time
+      # Reads password from ./.env
+      MYSQL_PASSWORD: $CFC_TIME_MYSQL_PASSWORD
+      MYSQL_RANDOM_ROOT_PASSWORD: true
