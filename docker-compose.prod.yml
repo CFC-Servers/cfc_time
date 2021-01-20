@@ -8,10 +8,10 @@ services:
     volumes:
       # Lets you put a .sql dump into ./sql_mount and have mysql pick it up on init
       - ./sql_mount:/docker-entrypoint-initdb.d
-      - $CFC_TIME_SQL_DIR:/var/lib/mysql
+      - $CFC_TIME_MYSQL_DIR:/var/lib/mysql
     environment:
       MYSQL_DATABASE: cfc_time
       MYSQL_USER: cfc_time
       # Reads password from ./.env
       MYSQL_PASSWORD: $CFC_TIME_MYSQL_PASSWORD
-      MYSQL_RANDOM_ROOT_PASSWORD: true
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
