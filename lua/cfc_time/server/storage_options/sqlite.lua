@@ -2,6 +2,7 @@ include( "utils/sqlite.lua" )
 
 local storage = CFCTime.Storage
 local logger = CFCTime.Logger
+local utils = CFCTime.Utils
 
 local SQL_NULL = {}
 
@@ -20,7 +21,7 @@ function storage:UpdateBatch( batchData )
     sql.Begin()
 
     for sessionID, data in pairs( batchData ) do
-        local updateStr = self.Utils:buildSessionUpdate( sessionID, data )
+        local updateStr = Utils:buildSessionUpdate( sessionID, data )
         sql.Query( updateStr )
     end
 
