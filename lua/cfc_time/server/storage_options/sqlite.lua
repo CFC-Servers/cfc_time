@@ -21,7 +21,7 @@ function storage:UpdateBatch( batchData )
     sql.Begin()
 
     for sessionID, data in pairs( batchData ) do
-        local updateStr = Utils:buildSessionUpdate( sessionID, data )
+        local updateStr = utils:buildSessionUpdate( sessionID, data )
         sql.Query( updateStr )
     end
 
