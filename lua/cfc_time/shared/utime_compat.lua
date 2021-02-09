@@ -21,9 +21,8 @@ end
 
 function plyMeta:GetUTimeTotalTime()
     local total = self:GetNWFloat( "CFC_Time_TotalTime", 0 )
-    local session = self:GetNWFloat( "CFC_Time_SessionDuration", 0 )
 
-    return total - session
+    return total
 end
 
 if SERVER then
