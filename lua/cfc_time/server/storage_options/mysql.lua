@@ -1,9 +1,9 @@
 require( "mysqloo" )
 include( "utils/mysql.lua" )
 
-local storage = CFCTime.Storage
-local logger = CFCTime.Logger
 local config = CFCTime.Config
+local logger = CFCTime.Logger
+local storage = CFCTime.Storage
 
 config.setDefaults{
     MYSQL_HOST = "127.0.0.1",
@@ -39,12 +39,11 @@ end
 
 function storage.database:onConnectionFailed( err )
     -- TODO: Test this
-    logger:error( "Failed to connect to database!" )
-    logger:fatal( err )
+    logger:fatal( "Failed to connect to database!", err )
 end
 
 hook.Add( "PostGamemodeLoaded", "CFC_Time_DBInit", function()
-    logger:info( "Gamemoded loaded, beginning database init..." )
+    logger:info( "Gamemoded loaded, connecting to database..." )
     storage.database:connect()
 end )
 
@@ -82,6 +81,11 @@ function storage:GetTotalTime( steamID, callback )
 end
 
 function storage:CreateSession( steamID, sessionStart, sessionDuration )
+    --[[
+    --   Because our session duration is stored as an unsigned mediumint (a perfectly reasonable size for /normal/ sessions),
+    --   we need to keep in mind that our UTime migration system (or others like it) could potentially have huge numbers that we
+    --   need to account for. As a result, we create multiple sessions if needed.
+    --]]
     local maxDuration = self.MAX_SESSION_DURATION
     local sessionsCount = math.max( 1, math.ceil( sessionDuration / maxDuration ) )
 
@@ -104,7 +108,7 @@ function storage:CreateSession( steamID, sessionStart, sessionDuration )
             )
         )
 
-        -- Because we use the same prepared query repeatedly, we need to run them in individual
+        -- Because we use the same prepared query repeatedly, we need to run each of them them in individual
         -- transactions or they'll all use the values given to the last one. This is a weird bug in MySQLOO
         local newSessionTransaction = self:InitTransaction()
         local newSession = self:Prepare( "newSession", nil, steamID, newStart, newEnd, duration )
@@ -126,13 +130,12 @@ end
 
 function storage:PlayerInit( ply, sessionStart, callback )
     local steamID = ply:SteamID64()
-
-    logger:info( "Receiving PlayerInit call for: " .. tostring( steamID ) )
-    local transaction = storage:InitTransaction()
+    logger:debug( "Receiving PlayerInit call for: " .. tostring( steamID ) )
 
     local newUser = self:Prepare( "newUser", nil, steamID )
     local newSession = self:Prepare( "newSession", nil, steamID, sessionStart, nil, 0 )
 
+    local transaction = storage:InitTransaction()
     transaction:addQuery( newUser )
     transaction:addQuery( newSession )
 
@@ -141,7 +144,6 @@ function storage:PlayerInit( ply, sessionStart, callback )
 
         local isFirstVisit = newUser:lastInsert() ~= 0
         local sessionID = newSession:lastInsert()
-        logger:debug( "NewUser last inserted index: " .. tostring( newUser:lastInsert() ) )
 
         local data =  {
             isFirstVisit = isFirstVisit,
