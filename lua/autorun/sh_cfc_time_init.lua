@@ -1,8 +1,8 @@
-require( "cfclogger" )
+require( "logger" )
 
 CFCTime = {}
 
-CFCTime.Logger = CFCLogger( "CFCTime" )
+CFCTime.Logger = Logger( "CFCTime" )
 CFCTime.Logger:on( "error" ):call( ErrorNoHalt )
 CFCTime.Logger:on( "fatal" ):call( error )
 
