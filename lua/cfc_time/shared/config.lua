@@ -55,13 +55,14 @@ function config.getType( key )
 end
 
 local function commandSet( ply, cmd, args )
+    if SERVER and ply:IsValid() and not ply:IsSuperadmin() then return end
     local key = args[1]
     local value = args[2]
 
     if not value or not key then return end
 
     if config.getType( key ) == "nil" then
-        return ply:PrintMessage( HUD_PRINTCONSOLE, "invalid config key " .. key )
+        return print( "invalid config key " .. key )
     end
 
     if config.getType( key ) == "number" then
@@ -70,8 +71,8 @@ local function commandSet( ply, cmd, args )
 
     config.set( key, value )
     config.save()
-    ply:PrintMessage( HUD_PRINTCONSOLE, key .. "=" .. value )
-    ply:PrintMessage( HUD_PRINTCONSOLE, "A server restart may be required for these changes to take effect" )
+    print( key .. "=" .. value )
+    print( "A server restart may be required for these changes to take effect" )
 end
 
 if SERVER then
