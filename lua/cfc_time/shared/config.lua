@@ -55,7 +55,7 @@ function config.getType( key )
 end
 
 local function commandSet( ply, cmd, args )
-    if SERVER and ply:IsValid() and not ply:IsSuperadmin() then return end
+    if SERVER and ply:IsValid() then return end
     local key = args[1]
     local value = args[2]
 
