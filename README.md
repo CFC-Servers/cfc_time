@@ -18,7 +18,3 @@ A drop-in replacement for Utime with multiple storage options, greater customiza
     `cfc_time_config_set "MYSQL_DATABASE" "database"`
     `cfc_time_config_set "MYSQL_PORT" "3306"`
 - Restart Server
-
-
-
-ahxaethaihai2dahvothaix1ooXeiRoo
