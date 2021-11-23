@@ -137,6 +137,8 @@ function ctime:initPlayer( ply )
 
         ctime.totalTimes[steamID] = sessionTotalTime
         ctime:broadcastPlayerTime( ply, sessionTotalTime, now, 0 )
+
+        ply:SetNWBool( "CFC_Time_PlayerInitialized", true )
     end
 
     storage:PlayerInit( ply, now, function( data )
