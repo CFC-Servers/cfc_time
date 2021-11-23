@@ -29,7 +29,7 @@ function ctime:broadcastPlayerTime( ply, totalTime, joined, duration )
     hook.Run( "CFC_Time_PlayerTimeUpdated", ply, totalTime, joined, duration )
 end
 
-function ctime:broadcastTimes( sessions )
+function ctime:broadcastTimes()
     for steamID, totalTime in pairs( self.totalTimes ) do
         local ply = steamIDToPly[steamID]
 
