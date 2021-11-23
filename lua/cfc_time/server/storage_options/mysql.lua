@@ -5,6 +5,8 @@ local storage = CFCTime.Storage
 local logger = CFCTime.Logger
 local config = CFCTime.Config
 
+local IsEmpty = table.IsEmpty
+
 config.setDefaults{
     MYSQL_HOST = "127.0.0.1",
     MYSQL_USERNAME = "",
@@ -52,11 +54,11 @@ end )
 
 function storage:UpdateBatch( batchData )
     if not batchData then return end
-    if table.IsEmpty( batchData ) then return end
+    if IsEmpty( batchData ) then return end
+
+    local transaction = storage:InitTransaction()
 
     for sessionID, data in pairs( batchData ) do
-        local transaction = storage:InitTransaction()
-
         local query = self:Prepare(
             "sessionUpdate",
             nil,
@@ -67,8 +69,9 @@ function storage:UpdateBatch( batchData )
         )
 
         transaction:addQuery( query )
-        transaction:start()
     end
+
+    transaction:start()
 end
 
 function storage:GetTotalTime( steamID, callback )
@@ -94,7 +97,7 @@ function storage:CreateSession( steamID, sessionStart, sessionDuration )
         )
     )
 
-    local function addSession( duration, newStart, newEnd )
+    local function addSession( transaction, duration, newStart, newEnd )
         logger:debug(
             string.format(
                 "Queueing new session of duration: %d ( start: %d | end: %d )",
@@ -104,14 +107,11 @@ function storage:CreateSession( steamID, sessionStart, sessionDuration )
             )
         )
 
-        -- Because we use the same prepared query repeatedly, we need to run them in individual
-        -- transactions or they'll all use the values given to the last one. This is a weird bug in MySQLOO
-        local newSessionTransaction = self:InitTransaction()
         local newSession = self:Prepare( "newSession", nil, steamID, newStart, newEnd, duration )
-
-        newSessionTransaction:addQuery( newSession )
-        newSessionTransaction:start()
+        transaction:addQuery( newSession )
     end
+
+    local newSessionTransaction = self:InitTransaction()
 
     for i = 1, sessionsCount do
         local usedDuration = maxDuration * ( i - 1 )
@@ -122,6 +122,8 @@ function storage:CreateSession( steamID, sessionStart, sessionDuration )
 
         addSession( newDuration, newStart, newEnd )
     end
+
+    newSessionTransaction:start()
 end
 
 function storage:PlayerInit( ply, sessionStart, callback )

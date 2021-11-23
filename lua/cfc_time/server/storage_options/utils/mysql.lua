@@ -1,3 +1,8 @@
+local isnumber = isnumber
+local isstring = isstring
+local isbool = isbool
+local stringFormat = string.format
+
 local storage = CFCTime.Storage
 local logger = CFCTime.Logger
 local config = CFCTime.Config
@@ -7,22 +12,21 @@ storage.preparedQueries = {}
 -- Maximum unsigned integer for a mysql mediumint
 storage.MAX_SESSION_DURATION = 16777215
 
+local onOperationError = function( _, ... )
+    logger:error( ... )
+end
+
 function storage:InitTransaction()
     local transaction = self.database:createTransaction()
-
-    transaction.onError = function( _, err )
-        logger:error( err )
-    end
+    transaction.onError = onOperationError
 
     return transaction
 end
 
+
 function storage:InitQuery( rawQuery )
     local query = self.database:query( rawQuery )
-
-    query.onError = function( _, err, errQuery )
-        logger:error( err, errQuery )
-    end
+    query.onError = onOperationError
 
     return query
 end
@@ -40,7 +44,7 @@ function storage:CreateUsersQuery()
 end
 
 function storage:CreateSessionsQuery()
-    local createSessions = string.format( [[
+    local createSessions = stringFormat( [[
         CREATE TABLE IF NOT EXISTS sessions(
             id       MEDIUMINT   UNSIGNED PRIMARY KEY AUTO_INCREMENT,
             realm    VARCHAR(10)          NOT NULL,
@@ -56,7 +60,7 @@ function storage:CreateSessionsQuery()
 end
 
 function storage:SessionCleanupQuery()
-    local fixMissingDepartedTimes = string.format( [[
+    local fixMissingDepartedTimes = stringFormat( [[
         UPDATE sessions
         SET departed = (joined + duration)
         WHERE departed IS NULL
@@ -87,11 +91,11 @@ function storage:PrepareStatements()
 
     local newUser = "INSERT INTO users (steam_id) VALUES(?) ON DUPLICATE KEY UPDATE id=id"
 
-    local newSession = string.format( [[
+    local newSession = stringFormat( [[
         INSERT INTO sessions (user_id, joined, departed, duration, realm) VALUES(?, ?, ?, ?, '%s')
     ]], realm )
 
-    local totalTime = string.format( [[
+    local totalTime = stringFormat( [[
         SELECT SUM(duration)
         FROM sessions
         WHERE user_id = ?
@@ -114,6 +118,7 @@ function storage:PrepareStatements()
     self:AddPreparedStatement( "totalTime", totalTime )
     self:AddPreparedStatement( "sessionUpdate", sessionUpdate )
 end
+
 
 function storage:Prepare( statementName, onSuccess, ... )
     local query = self.preparedQueries[statementName]
