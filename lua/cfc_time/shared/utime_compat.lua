@@ -16,7 +16,7 @@ function plyMeta:GetUTimeStart()
 end
 
 function plyMeta:GetUTimeSessionTime()
-    return self:GetNWFloat( "CFC_Time_SessionDuration", 0 )
+    return CurTime() - self:GetUTimeStart()
 end
 
 function plyMeta:GetUTimeTotalTime()
@@ -59,10 +59,10 @@ if SERVER then
 
         logger:info(
             string.format(
-            	"Player %s [%s] migrated from UTime with existing time of %d",
-            	ply:GetName(),
-            	steamID,
-            	totalTime
+                "Player %s [%s] migrated from UTime with existing time of %d",
+                ply:GetName(),
+                steamID,
+                totalTime
             )
         )
 
@@ -75,7 +75,6 @@ if SERVER then
         logger:debug( "[UtimeCompat] Received PlayerInitialTime hook for first-time player - migrating time!")
 
         local totalUtime = compat:MigratePlayerFromUtime( ply )
-
         if not totalUtime then return end
 
         timeStruct.add( totalUtime )
