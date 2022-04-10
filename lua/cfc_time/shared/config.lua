@@ -54,7 +54,7 @@ function config.getType( key )
     return type( config.values[key] )
 end
 
-local function commandSet( ply, cmd, args )
+local function commandSet( ply, _, args )
     if SERVER and ply:IsValid() then return end
     local key = args[1]
     local value = args[2]
