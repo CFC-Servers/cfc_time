@@ -1,7 +1,6 @@
 CFCTime.Utils = {}
 
 local storage = CFCTime.Storage
-local logger = CFCTime.Logger
 local utils = CFCTime.Utils
 
 local function escapeArg( arg )
