@@ -3,6 +3,7 @@ Utime = {}
 
 -- Addons like APromote rely on the utime_welcome convar existing for some reason?
 CreateConVar( "utime_welcome", "1", FCVAR_ARCHIVE )
+CreateConVar( "utime_enable", "1", FCVAR_ARCHIVE )
 
 local logger = CFCTime.Logger
 local plyMeta = FindMetaTable( "Player" )
