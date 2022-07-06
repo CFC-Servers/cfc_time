@@ -72,7 +72,7 @@ if SERVER then
         ply:SetNWFloat( "UTimeStart", CurTime() )
         if not isFirstVisit then return end
 
-        logger:debug( "[UtimeCompat] Received PlayerInitialTime hook for first-time player - migrating time!")
+        logger:debug( "[UtimeCompat] Received PlayerInitialTime hook for first-time player - migrating time!" )
 
         local totalUtime = compat:MigratePlayerFromUtime( ply )
 
