@@ -70,7 +70,6 @@ if SERVER then
     end
 
     hook.Add( "CFC_Time_PlayerInitialTime", "CFC_Time_UtimeCompat", function( ply, isFirstVisit, timeStruct )
-        ply:SetNWFloat( "TotalUTime", totalTime )
         ply:SetNWFloat( "CFC_UTime_Compat_SessionStart", CurTime() )
         if not isFirstVisit then return end
 
