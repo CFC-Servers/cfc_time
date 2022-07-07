@@ -85,7 +85,7 @@ if SERVER then
         ply:SetNWFloat( "CFC_UTime_Compat_SessionStart", CurTime() )
     end )
 
-    hook.Add( "CFC_Time_PlayerTimeUpdated", "CFC_Time_UtimeCompat", function( ply, totalTime )
+    hook.Add( "CFC_Time_PlayerInitialTime", "CFC_Time_UtimeCompat", function( ply, totalTime )
         ply:SetNWFloat( "TotalUTime", totalTime )
     end )
 end
