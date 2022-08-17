@@ -3,6 +3,8 @@ CFCTime.Utils = {}
 local storage = CFCTime.Storage
 local utils = CFCTime.Utils
 
+SQL_NULL = {}
+
 local function escapeArg( arg )
     if arg == SQL_NULL then
         return "NULL"

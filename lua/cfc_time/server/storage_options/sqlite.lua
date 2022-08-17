@@ -4,8 +4,6 @@ local storage = CFCTime.Storage
 local logger = CFCTime.Logger
 local utils = CFCTime.Utils
 
-local SQL_NULL = {}
-
 hook.Add( "PostGamemodeLoaded", "CFC_Time_DBInit", function()
     logger:info( "Gamemoded loaded, beginning database init..." )
     storage:SetupTables()
