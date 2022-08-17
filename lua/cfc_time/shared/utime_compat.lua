@@ -72,8 +72,6 @@ if SERVER then
     end
 
     hook.Add( "CFC_Time_PlayerInitialTime", "CFC_Time_UtimeCompat", function( ply, isFirstVisit, timeStruct )
-        ply:SetNWFloat( "CFC_UTime_Compat_SessionStart", CurTime() )
-        ply:SetNWFloat( "UTimeStart", CurTime() )
         if not isFirstVisit then return end
 
         logger:debug( "[UtimeCompat] Received PlayerInitialTime hook for first-time player - migrating time!" )
