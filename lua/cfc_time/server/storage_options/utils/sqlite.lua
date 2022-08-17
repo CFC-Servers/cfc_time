@@ -3,6 +3,8 @@ CFCTime.Utils = {}
 local storage = CFCTime.Storage
 local utils = CFCTime.Utils
 
+SQL_NULL = {}
+
 local function escapeArg( arg )
     if arg == SQL_NULL then
         return "NULL"
@@ -81,7 +83,7 @@ end
 function storage:QueryCreateSession( steamID, sessionStart, sessionEnd, duration )
     return queryFormat( [[
         INSERT INTO cfc_time_sessions (user_id, joined, departed, duration, realm) VALUES(%s, %s, %s, %s, %s)
-    ]], steamID, sessionStart, sessionEnd, duration, self.realm )
+    ]], steamID, sessionStart, realm, sessionEnd, self.realm )
 end
 
 function storage:QueryGetUser( steamID )
