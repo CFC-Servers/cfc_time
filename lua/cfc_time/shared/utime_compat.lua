@@ -13,7 +13,9 @@ function plyMeta:GetUTime()
 end
 
 function plyMeta:GetUTimeStart()
-    return self:GetNWFloat( "CFC_UTime_Compat_SessionStart", CurTime() )
+    local now = os.time()
+    local sessionSeconds = now - self:GetNWFloat( "CFC_Time_SessionStart", now )
+    return CurTime() - sessionSeconds
 end
 
 function plyMeta:GetUTimeSessionTime()
