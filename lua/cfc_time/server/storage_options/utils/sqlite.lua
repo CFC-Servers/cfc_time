@@ -83,7 +83,7 @@ end
 function storage:QueryCreateSession( steamID, sessionStart, sessionEnd, duration )
     return queryFormat( [[
         INSERT INTO cfc_time_sessions (user_id, joined, departed, duration, realm) VALUES(%s, %s, %s, %s, %s)
-    ]], steamID, sessionStart, realm, sessionEnd, self.realm )
+    ]], steamID, sessionStart, sessionEnd, duration, self.realm )
 end
 
 function storage:QueryGetUser( steamID )
