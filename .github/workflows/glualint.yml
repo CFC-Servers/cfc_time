@@ -7,6 +7,6 @@ on:
 
 jobs:
   Lint:
-    uses: CFC-Servers/github_action_workflows/.github/workflows/lint_glua.yml@feature/shareable
+    uses: FPtje/GLuaFixer/.github/workflows/glualint.yml@master
     with:
       config: "https://cfc.gg/configs/gluafixer/glualint.json"
