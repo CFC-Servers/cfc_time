@@ -9,3 +9,4 @@ jobs:
     uses: CFC-Servers/github_action_workflows/.github/workflows/lint_glua.yml@feature/shareable
     with:
       config: "https://cfc.gg/configs/gluafixer/glualint.json"
+
