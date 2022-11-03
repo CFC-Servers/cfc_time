@@ -43,7 +43,7 @@ end
 function storage:PlayerInit( ply, sessionStart, callback )
     local steamID = ply:SteamID64()
 
-    logger:info( "Receiving PlayerInit call for: " .. tostring( steamID ) )
+    logger:debug( "Receiving PlayerInit call for: " .. tostring( steamID ) )
 
     sql.Begin()
 

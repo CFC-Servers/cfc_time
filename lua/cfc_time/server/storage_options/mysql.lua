@@ -127,7 +127,7 @@ end
 function storage:PlayerInit( ply, sessionStart, callback )
     local steamID = ply:SteamID64()
 
-    logger:info( "Receiving PlayerInit call for: " .. tostring( steamID ) )
+    logger:debug( "Receiving PlayerInit call for: " .. tostring( steamID ) )
     local transaction = storage:InitTransaction()
 
     local newUser = self:Prepare( "newUser", nil, steamID )
