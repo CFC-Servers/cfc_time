@@ -1,9 +1,10 @@
 name: GLuaFixer
 
 on:
+  push:
+    branches:
+      - master
   pull_request:
-    paths:
-      - 'lua/**'
 
 jobs:
   Lint:
