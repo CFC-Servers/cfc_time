@@ -39,6 +39,8 @@ function ctime:broadcastTimes()
         local duration = session.duration
 
         self:broadcastPlayerTime( ply, totalTime, joined, duration )
+
+        ply:SetNWBool( "CFC_Time_PlayerInitialized", true )
     end
 end
 
