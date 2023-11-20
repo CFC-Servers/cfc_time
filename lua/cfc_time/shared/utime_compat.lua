@@ -10,24 +10,24 @@ local plyMeta = FindMetaTable( "Player" )
 
 -- GetUTime returns the total time the player has played on the server excluding the current session
 function plyMeta:GetUTime()
-    return self:GetNWFloat( "CFC_Time_TotalTime", 0 ) - self:GetUTimeSessionTime()
+    return self:GetNW2Float( "CFC_Time_TotalTime", 0 ) - self:GetUTimeSessionTime()
 end
 
 -- GetUTimeStart returns the time the player started their current session
 function plyMeta:GetUTimeStart()
     local now = os.time()
-    local sessionSeconds = now - self:GetNWFloat( "CFC_Time_SessionStart", now )
+    local sessionSeconds = now - self:GetNW2Float( "CFC_Time_SessionStart", now )
     return CurTime() - sessionSeconds
 end
 
 -- GetUTimeSessionTime returns the time the player has played in their current session
 function plyMeta:GetUTimeSessionTime()
-    return self:GetNWFloat( "CFC_Time_SessionDuration", 0 )
+    return self:GetNW2Float( "CFC_Time_SessionDuration", 0 )
 end
 
 -- GetUTimeTotalTime returns the total time the player including the current session
 function plyMeta:GetUTimeTotalTime()
-    local total = self:GetNWFloat( "CFC_Time_TotalTime", 0 )
+    local total = self:GetNW2Float( "CFC_Time_TotalTime", 0 )
 
     return total
 end
@@ -88,6 +88,6 @@ if SERVER then
     end )
 
     hook.Add( "CFC_Time_PlayerTimeUpdated", "CFC_Time_UtimeCompat", function( ply, totalTime )
-        ply:SetNWFloat( "TotalUTime", totalTime )
+        ply:SetNW2Float( "TotalUTime", totalTime )
     end )
 end
