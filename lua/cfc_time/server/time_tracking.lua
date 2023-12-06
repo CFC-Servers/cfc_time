@@ -22,9 +22,9 @@ ctime.totalTimes = {}
 local steamIDToPly = {}
 
 function ctime:broadcastPlayerTime( ply, totalTime, joined, duration )
-    ply:SetNWFloat( "CFC_Time_TotalTime", totalTime )
-    ply:SetNWFloat( "CFC_Time_SessionStart", joined )
-    ply:SetNWFloat( "CFC_Time_SessionDuration", duration )
+    ply:SetNW2Float( "CFC_Time_TotalTime", totalTime )
+    ply:SetNW2Float( "CFC_Time_SessionStart", joined )
+    ply:SetNW2Float( "CFC_Time_SessionDuration", duration )
 
     hook.Run( "CFC_Time_PlayerTimeUpdated", ply, totalTime, joined, duration )
 end
@@ -40,7 +40,7 @@ function ctime:broadcastTimes()
 
         self:broadcastPlayerTime( ply, totalTime, joined, duration )
 
-        ply:SetNWBool( "CFC_Time_PlayerInitialized", true )
+        ply:SetNW2Bool( "CFC_Time_PlayerInitialized", true )
     end
 end
 
