@@ -97,12 +97,10 @@ end
 function ctime:startTimer()
     logger:debug( "Starting timer" )
 
-    local timeUpdater = function()
-        local success, err = pcall( function() ctime:updateTimes() end )
-        if not success then
-            logger:fatal( "Update times call failed with an error!", err )
-        end
-
+    local function timeUpdater()
+        ProtectedCall( function()
+            ctime:updateTimes()
+        end )
     end
 
     timer.Create(
