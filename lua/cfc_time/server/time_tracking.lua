@@ -154,6 +154,7 @@ function ctime:initPlayer( ply )
         if isFirstVisit then return setupPly( 0, true ) end
 
         storage:GetTotalTime( steamID, function( total )
+            if not IsValid( ply ) then return end
             setupPly( total, false )
         end )
     end )
