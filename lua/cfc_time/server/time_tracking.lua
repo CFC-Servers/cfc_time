@@ -97,12 +97,10 @@ end
 function ctime:startTimer()
     logger:debug( "Starting timer" )
 
-    local timeUpdater = function()
-        local success, err = pcall( function() ctime:updateTimes() end )
-        if not success then
-            logger:fatal( "Update times call failed with an error!", err )
-        end
-
+    local function timeUpdater()
+        ProtectedCall( function()
+            ctime:updateTimes()
+        end )
     end
 
     timer.Create(
@@ -142,6 +140,8 @@ function ctime:initPlayer( ply )
     end
 
     storage:PlayerInit( ply, now, function( data )
+        if not IsValid( ply ) then return end
+
         local isFirstVisit = data.isFirstVisit
         local sessionID = data.sessionID
 
@@ -152,6 +152,7 @@ function ctime:initPlayer( ply )
         if isFirstVisit then return setupPly( 0, true ) end
 
         storage:GetTotalTime( steamID, function( total )
+            if not IsValid( ply ) then return end
             setupPly( total, false )
         end )
     end )
