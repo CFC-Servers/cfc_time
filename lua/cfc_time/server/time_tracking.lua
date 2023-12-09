@@ -142,6 +142,8 @@ function ctime:initPlayer( ply )
     end
 
     storage:PlayerInit( ply, now, function( data )
+        if not IsValid( ply ) then return end
+
         local isFirstVisit = data.isFirstVisit
         local sessionID = data.sessionID
 
