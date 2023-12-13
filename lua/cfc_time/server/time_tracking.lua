@@ -22,9 +22,9 @@ ctime.totalTimes = {}
 local steamIDToPly = {}
 
 function ctime:broadcastPlayerTime( ply, totalTime, joined, duration )
-    ply:SetNW2Float( "CFC_Time_TotalTime", totalTime )
-    ply:SetNW2Float( "CFC_Time_SessionStart", joined )
-    ply:SetNW2Float( "CFC_Time_SessionDuration", duration )
+    ply:SetNWFloat( "CFC_Time_TotalTime", totalTime )
+    ply:SetNWFloat( "CFC_Time_SessionStart", joined )
+    ply:SetNWFloat( "CFC_Time_SessionDuration", duration )
 
     hook.Run( "CFC_Time_PlayerTimeUpdated", ply, totalTime, joined, duration )
 end
@@ -40,7 +40,7 @@ function ctime:broadcastTimes()
 
         self:broadcastPlayerTime( ply, totalTime, joined, duration )
 
-        ply:SetNW2Bool( "CFC_Time_PlayerInitialized", true )
+        ply:SetNWBool( "CFC_Time_PlayerInitialized", true )
     end
 end
 
@@ -97,10 +97,12 @@ end
 function ctime:startTimer()
     logger:debug( "Starting timer" )
 
-    local function timeUpdater()
-        ProtectedCall( function()
-            ctime:updateTimes()
-        end )
+    local timeUpdater = function()
+        local success, err = pcall( function() ctime:updateTimes() end )
+        if not success then
+            logger:fatal( "Update times call failed with an error!", err )
+        end
+
     end
 
     timer.Create(
@@ -140,8 +142,6 @@ function ctime:initPlayer( ply )
     end
 
     storage:PlayerInit( ply, now, function( data )
-        if not IsValid( ply ) then return end
-
         local isFirstVisit = data.isFirstVisit
         local sessionID = data.sessionID
 
@@ -152,7 +152,6 @@ function ctime:initPlayer( ply )
         if isFirstVisit then return setupPly( 0, true ) end
 
         storage:GetTotalTime( steamID, function( total )
-            if not IsValid( ply ) then return end
             setupPly( total, false )
         end )
     end )
