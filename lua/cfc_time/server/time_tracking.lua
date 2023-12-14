@@ -81,6 +81,10 @@ function ctime:updateTimes()
             local newTotal = self.totalTimes[steamID] + timeDelta
             self.totalTimes[steamID] = newTotal
         end
+
+        if departed then
+            self:untrackPlayer( steamID )
+        end
     end
 
     self.lastUpdate = now
