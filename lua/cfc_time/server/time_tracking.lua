@@ -30,17 +30,21 @@ function ctime:broadcastPlayerTime( ply, totalTime, joined, duration )
 end
 
 function ctime:broadcastTimes()
+    local sessions = self.sessions
+
     for steamID, totalTime in pairs( self.totalTimes ) do
         local ply = steamIDToPly[steamID]
 
-        local session = self.sessions[steamID]
+        if IsValid( ply ) then
+            local session = sessions[steamID]
 
-        local joined = session.joined
-        local duration = session.duration
+            local joined = session.joined
+            local duration = session.duration
 
-        self:broadcastPlayerTime( ply, totalTime, joined, duration )
+            self:broadcastPlayerTime( ply, totalTime, joined, duration )
 
-        ply:SetNW2Bool( "CFC_Time_PlayerInitialized", true )
+            ply:SetNW2Bool( "CFC_Time_PlayerInitialized", true )
+        end
     end
 end
 
@@ -56,30 +60,29 @@ function ctime:updateTimes()
     local now = getNow()
     local timeDelta = now - self.lastUpdate
 
-    for steamID, data in pairs( self.sessions ) do
-        local isValid = true
+    local sessionIDs = self.sessionIDs
+    local totalTimes = self.totalTimes
 
+    for steamID, data in pairs( self.sessions ) do
         local joined = data.joined
         local departed = data.departed
 
+        -- If they've departed and we already saved the session to the DB, we can skip and untrack
         if departed and departed < self.lastUpdate then
             self:untrackPlayer( steamID )
-            isValid = false
-        end
-
-        local sessionTime = ( departed or now ) - joined
-        if sessionTime <= 0 then
-            isValid = false
-        end
-
-        if isValid then
+        else
+            local sessionTime = ( departed or now ) - joined
             data.duration = sessionTime
 
-            local sessionID = self.sessionIDs[steamID]
+            local sessionID = sessionIDs[steamID]
             batch[sessionID] = data
 
-            local newTotal = self.totalTimes[steamID] + timeDelta
-            self.totalTimes[steamID] = newTotal
+            -- Players may not have a total time if they weren't set up successfully
+            local currentTotal = totalTimes[steamID]
+            if currentTotal then
+                local newTotal = currentTotal + timeDelta
+                totalTimes[steamID] = newTotal
+            end
         end
     end
 
@@ -119,7 +122,7 @@ function ctime:initPlayer( ply )
     local now = getNow()
     local steamID = ply:SteamID64()
 
-    local function setupPly( totalTime, isFirstVisit )
+    local function setupPly( totalTime, isFirstVisit, lastSession )
         local sessionTotalTime = totalTime + ( getNow() - now )
 
         local initialTime = { seconds = 0 }
@@ -132,28 +135,41 @@ function ctime:initPlayer( ply )
             initialTime.seconds = seconds
         end
 
-        hook.Run( "CFC_Time_PlayerInitialTime", ply, isFirstVisit, initialTime )
+        hook.Run( "CFC_Time_PlayerInitialTime", ply, isFirstVisit, initialTime, lastSession )
         sessionTotalTime = sessionTotalTime + initialTime.seconds
 
         ctime.totalTimes[steamID] = sessionTotalTime
         ctime:broadcastPlayerTime( ply, sessionTotalTime, now, 0 )
     end
 
-    storage:PlayerInit( ply, now, function( data )
-        if not IsValid( ply ) then return end
+    local existingSession = self.sessions[steamID]
+    if existingSession then
+        ErrorNoHaltWithStack( "[CFCTime] Player loaded in, but already had a session? " .. steamID )
+        self:untrackPlayer( steamID )
+    end
 
-        local isFirstVisit = data.isFirstVisit
+    storage:PlayerInit( ply, now, function( data )
+        local lastSession = data.lastSession
         local sessionID = data.sessionID
 
+        local session = { joined = now }
         steamIDToPly[steamID] = ply
+        ctime.sessions[steamID] = session
         ctime.sessionIDs[steamID] = sessionID
-        ctime.sessions[steamID] = { joined = now }
 
-        if isFirstVisit then return setupPly( 0, true ) end
+        if not IsValid( ply ) then
+            session.departed = now
+            logger:warn( "Player left before their session was created? Marking them as departed", steamID )
+            return
+        end
+
+        -- If they don't have any previous sessions on this realm, this is their first visit
+        if not lastSession then
+            return setupPly( 0, true, lastSession )
+        end
 
         storage:GetTotalTime( steamID, function( total )
-            if not IsValid( ply ) then return end
-            setupPly( total, false )
+            setupPly( total, false, lastSession )
         end )
     end )
 end

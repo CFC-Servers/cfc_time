@@ -7,22 +7,20 @@ storage.preparedQueries = {}
 -- Maximum unsigned integer for a mysql mediumint
 storage.MAX_SESSION_DURATION = 16777215
 
+local function onError( _, err, sql )
+    logger:error( err, sql )
+end
+
 function storage:InitTransaction()
     local transaction = self.database:createTransaction()
-
-    transaction.onError = function( _, err )
-        logger:error( err )
-    end
+    transaction.onError = onError
 
     return transaction
 end
 
 function storage:InitQuery( rawQuery )
     local query = self.database:query( rawQuery )
-
-    query.onError = function( _, err, errQuery )
-        logger:error( err, errQuery )
-    end
+    query.onError = onError
 
     return query
 end
@@ -94,8 +92,10 @@ function storage:PrepareStatements()
     local totalTime = string.format( [[
         SELECT SUM(duration)
         FROM sessions
-        WHERE user_id = ?
-        AND realm = '%s'
+        WHERE
+          user_id = ?
+        AND
+          realm = '%s'
         FOR UPDATE
     ]], realm )
 
@@ -109,10 +109,23 @@ function storage:PrepareStatements()
           id = ?
     ]]
 
+    local lastSession = string.format( [[
+        SELECT id, joined, departed, duration
+        FROM sessions
+        WHERE
+          user_id = ?
+        AND
+          realm = '%s'
+        ORDER BY
+          departed DESC
+        LIMIT 1
+    ]], realm )
+
     self:AddPreparedStatement( "newUser", newUser )
     self:AddPreparedStatement( "newSession", newSession )
     self:AddPreparedStatement( "totalTime", totalTime )
     self:AddPreparedStatement( "sessionUpdate", sessionUpdate )
+    self:AddPreparedStatement( "lastSession", lastSession )
 end
 
 function storage:Prepare( statementName, onSuccess, ... )
@@ -133,7 +146,8 @@ function storage:Prepare( statementName, onSuccess, ... )
         end
     end
 
-    if onSuccess then query.onSuccess = onSuccess end
+    query.onSuccess = onSuccess
+    query.onError = onError
 
     return query
 end

@@ -128,28 +128,31 @@ function storage:PlayerInit( ply, sessionStart, callback )
     local steamID = ply:SteamID64()
 
     logger:debug( "Receiving PlayerInit call for: " .. tostring( steamID ) )
-    local transaction = storage:InitTransaction()
+    local lastSessionQuery = self:Prepare( "lastSession", nil, steamID )
 
-    local newUser = self:Prepare( "newUser", nil, steamID )
-    local newSession = self:Prepare( "newSession", nil, steamID, sessionStart, nil, 0 )
+    lastSessionQuery.onSuccess = function( _, lastSession )
+        logger:debug( "Looked up last session for", steamID, ":", lastSession )
 
-    transaction:addQuery( newUser )
-    transaction:addQuery( newSession )
+        local transaction = storage:InitTransaction()
+        local newUserQuery = self:Prepare( "newUser", nil, steamID )
+        local newSessionQuery = self:Prepare( "newSession", nil, steamID, sessionStart, nil, 0 )
 
-    transaction.onSuccess = function()
-        logger:debug( "PlayerInit transaction successful!" )
+        transaction:addQuery( newUserQuery )
+        transaction:addQuery( newSessionQuery )
 
-        local isFirstVisit = newUser:lastInsert() ~= 0
-        local sessionID = newSession:lastInsert()
-        logger:debug( "NewUser last inserted index: " .. tostring( newUser:lastInsert() ) )
+        transaction.onSuccess = function()
+            logger:debug( "PlayerInit transaction successful!" )
 
-        local data =  {
-            isFirstVisit = isFirstVisit,
-            sessionID = sessionID
-        }
+            local sessionID = newSessionQuery:lastInsert()
 
-        callback( data )
+            local data =  {
+                lastSession = lastSession,
+                sessionID = sessionID
+            }
+
+            callback( data )
+        end
+
+        transaction:start()
     end
-
-    transaction:start()
 end
