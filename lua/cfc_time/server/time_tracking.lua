@@ -32,15 +32,16 @@ end
 function ctime:broadcastTimes()
     for steamID, totalTime in pairs( self.totalTimes ) do
         local ply = steamIDToPly[steamID]
+        if IsValid( ply ) then
+            local session = self.sessions[steamID]
 
-        local session = self.sessions[steamID]
+            local joined = session.joined
+            local duration = session.duration
 
-        local joined = session.joined
-        local duration = session.duration
+            self:broadcastPlayerTime( ply, totalTime, joined, duration )
 
-        self:broadcastPlayerTime( ply, totalTime, joined, duration )
-
-        ply:SetNW2Bool( "CFC_Time_PlayerInitialized", true )
+            ply:SetNW2Bool( "CFC_Time_PlayerInitialized", true )
+        end
     end
 end
 
@@ -57,29 +58,23 @@ function ctime:updateTimes()
     local timeDelta = now - self.lastUpdate
 
     for steamID, data in pairs( self.sessions ) do
-        local isValid = true
-
         local joined = data.joined
         local departed = data.departed
 
         if departed and departed < self.lastUpdate then
             self:untrackPlayer( steamID )
-            isValid = false
-        end
-
-        local sessionTime = ( departed or now ) - joined
-        if sessionTime <= 0 then
-            isValid = false
-        end
-
-        if isValid then
+        else
+            local sessionTime = ( departed or now ) - joined
             data.duration = sessionTime
 
             local sessionID = self.sessionIDs[steamID]
             batch[sessionID] = data
 
-            local newTotal = self.totalTimes[steamID] + timeDelta
-            self.totalTimes[steamID] = newTotal
+            local currentTotal = self.totalTimes[steamID]
+            if currentTotal then
+                local newTotal = currentTotal + timeDelta
+                self.totalTimes[steamID] = newTotal
+            end
         end
     end
 
@@ -140,19 +135,27 @@ function ctime:initPlayer( ply )
     end
 
     storage:PlayerInit( ply, now, function( data )
-        if not IsValid( ply ) then return end
-
         local isFirstVisit = data.isFirstVisit
         local sessionID = data.sessionID
 
+        local session = { joined = now }
         steamIDToPly[steamID] = ply
         ctime.sessionIDs[steamID] = sessionID
-        ctime.sessions[steamID] = { joined = now }
+        ctime.sessions[steamID] = session
+
+        if not IsValid( ply ) then
+            session.departed = now
+            return
+        end
 
         if isFirstVisit then return setupPly( 0, true ) end
 
         storage:GetTotalTime( steamID, function( total )
-            if not IsValid( ply ) then return end
+            if not IsValid( ply ) then
+                session.departed = now
+                return
+            end
+
             setupPly( total, false )
         end )
     end )
