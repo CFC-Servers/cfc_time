@@ -70,11 +70,13 @@ function ctime:updateTimes()
         batch[sessionID] = data
 
         local ply = steamIDToPly[steamID]
+
         if IsValid( ply ) then
             local newTotal = totalTimes[steamID] + timeDelta
             totalTimes[steamID] = newTotal
         else
             totalTimes[steamID] = nil
+            data.departed = departed or now
         end
     end
 
