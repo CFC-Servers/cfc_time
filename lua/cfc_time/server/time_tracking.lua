@@ -56,30 +56,25 @@ function ctime:updateTimes()
     local now = getNow()
     local timeDelta = now - self.lastUpdate
 
-    for steamID, data in pairs( self.sessions ) do
-        local isValid = true
+    local sessionIDs = self.sessionIDs
+    local totalTimes = self.totalTimes
 
+    for steamID, data in pairs( self.sessions ) do
         local joined = data.joined
         local departed = data.departed
 
-        if departed and departed < self.lastUpdate then
-            self:untrackPlayer( steamID )
-            isValid = false
-        end
-
         local sessionTime = ( departed or now ) - joined
-        if sessionTime <= 0 then
-            isValid = false
-        end
+        data.duration = sessionTime
 
-        if isValid then
-            data.duration = sessionTime
+        local sessionID = sessionIDs[steamID]
+        batch[sessionID] = data
 
-            local sessionID = self.sessionIDs[steamID]
-            batch[sessionID] = data
-
-            local newTotal = self.totalTimes[steamID] + timeDelta
-            self.totalTimes[steamID] = newTotal
+        local ply = steamIDToPly[steamID]
+        if IsValid( ply ) then
+            local newTotal = totalTimes[steamID] + timeDelta
+            totalTimes[steamID] = newTotal
+        else
+            totalTimes[steamID] = nil
         end
     end
 
@@ -90,8 +85,15 @@ function ctime:updateTimes()
     logger:debug( "Updating " .. table.Count( batch ) .. " sessions:" )
     logger:debug( batch )
 
-    storage:UpdateBatch( batch )
-    self:broadcastTimes()
+    storage:UpdateBatch( batch, function()
+        for steamID, data in pairs( batch ) do
+            if data.departed then
+                self:untrackPlayer( steamID )
+            end
+        end
+
+        self:broadcastTimes()
+    end )
 end
 
 function ctime:startTimer()
@@ -136,12 +138,9 @@ function ctime:initPlayer( ply )
         sessionTotalTime = sessionTotalTime + initialTime.seconds
 
         ctime.totalTimes[steamID] = sessionTotalTime
-        ctime:broadcastPlayerTime( ply, sessionTotalTime, now, 0 )
     end
 
     storage:PlayerInit( ply, now, function( data )
-        if not IsValid( ply ) then return end
-
         local isFirstVisit = data.isFirstVisit
         local sessionID = data.sessionID
 
@@ -152,7 +151,6 @@ function ctime:initPlayer( ply )
         if isFirstVisit then return setupPly( 0, true ) end
 
         storage:GetTotalTime( steamID, function( total )
-            if not IsValid( ply ) then return end
             setupPly( total, false )
         end )
     end )

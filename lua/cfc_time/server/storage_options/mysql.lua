@@ -50,7 +50,7 @@ end )
 
 --[ API Begins Here ]--
 
-function storage:UpdateBatch( batchData )
+function storage:UpdateBatch( batchData, callback )
     if not batchData then return end
     if table.IsEmpty( batchData ) then return end
 
@@ -59,7 +59,7 @@ function storage:UpdateBatch( batchData )
 
         local query = self:Prepare(
             "sessionUpdate",
-            nil,
+            callback,
             data.joined,
             data.departed,
             data.duration,
