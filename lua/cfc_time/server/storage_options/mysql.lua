@@ -51,15 +51,16 @@ end )
 --[ API Begins Here ]--
 
 function storage:UpdateBatch( batchData, callback )
-    if not batchData then return end
-    if table.IsEmpty( batchData ) then return end
+    if not batchData then return callback() end
+    if table.IsEmpty( batchData ) then return callback() end
+
+    local transaction = storage:InitTransaction()
+    transaction.onSuccess = callback
 
     for sessionID, data in pairs( batchData ) do
-        local transaction = storage:InitTransaction()
-
         local query = self:Prepare(
             "sessionUpdate",
-            callback,
+            nil,
             data.joined,
             data.departed,
             data.duration,
@@ -67,8 +68,9 @@ function storage:UpdateBatch( batchData, callback )
         )
 
         transaction:addQuery( query )
-        transaction:start()
     end
+
+    transaction:start()
 end
 
 function storage:GetTotalTime( steamID, callback )
