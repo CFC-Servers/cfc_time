@@ -2,7 +2,7 @@
 
 local loadQueue = {}
 
-hook.Add( "PlayerInitialSpawn", "GM_FullLoadSetup", function(ply)
+hook.Add( "PlayerInitialSpawn", "GM_FullLoadSetup", function( ply )
     loadQueue[ply] = true
 end )
 
