@@ -11,7 +11,7 @@ function storage:InitTransaction()
     local transaction = self.database:createTransaction()
 
     transaction.onError = function( _, err )
-        logger:error( err )
+        error( "Transaction error! '" .. err .. "'" )
     end
 
     return transaction
@@ -21,7 +21,7 @@ function storage:InitQuery( rawQuery )
     local query = self.database:query( rawQuery )
 
     query.onError = function( _, err, errQuery )
-        logger:error( err, errQuery )
+        error( "Query error! '" .. err .. "' - " .. errQuery )
     end
 
     return query
@@ -70,7 +70,7 @@ function storage:AddPreparedStatement( name, query )
     local statement = self.database:prepare( query )
 
     statement.onError = function( _, err, errQuery )
-        logger:error( "An error has occured in a prepared statement!", err, errQuery )
+        error( "An error has occured in a prepared statement! '" .. err .. "' - " .. errQuery )
     end
 
     statement.onSuccess = function()

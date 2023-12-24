@@ -39,8 +39,7 @@ end
 
 function storage.database:onConnectionFailed( err )
     -- TODO: Test this
-    logger:error( "Failed to connect to database!" )
-    logger:fatal( err )
+    error( "CFCTime: Failed to connect to database! '" .. err .. "'" )
 end
 
 hook.Add( "PostGamemodeLoaded", "CFC_Time_DBInit", function()
@@ -50,13 +49,14 @@ end )
 
 --[ API Begins Here ]--
 
-function storage:UpdateBatch( batchData )
-    if not batchData then return end
-    if table.IsEmpty( batchData ) then return end
+function storage:UpdateBatch( batchData, callback )
+    if not batchData then return callback() end
+    if table.IsEmpty( batchData ) then return callback() end
+
+    local transaction = storage:InitTransaction()
+    transaction.onSuccess = callback
 
     for sessionID, data in pairs( batchData ) do
-        local transaction = storage:InitTransaction()
-
         local query = self:Prepare(
             "sessionUpdate",
             nil,
@@ -67,8 +67,9 @@ function storage:UpdateBatch( batchData )
         )
 
         transaction:addQuery( query )
-        transaction:start()
     end
+
+    transaction:start()
 end
 
 function storage:GetTotalTime( steamID, callback )

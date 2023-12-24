@@ -12,9 +12,9 @@ end )
 
 --[ API Begins Here ]--
 
-function storage:UpdateBatch( batchData )
-    if not batchData then return end
-    if table.IsEmpty( batchData ) then return end
+function storage:UpdateBatch( batchData, callback )
+    if not batchData then return callback() end
+    if table.IsEmpty( batchData ) then return callback() end
 
     sql.Begin()
 
@@ -24,6 +24,8 @@ function storage:UpdateBatch( batchData )
     end
 
     sql.Commit()
+
+    callback()
 end
 
 function storage:GetTotalTime( steamID, callback )
