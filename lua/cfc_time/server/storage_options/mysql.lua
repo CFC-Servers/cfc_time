@@ -39,8 +39,7 @@ end
 
 function storage.database:onConnectionFailed( err )
     -- TODO: Test this
-    logger:error( "Failed to connect to database!" )
-    logger:fatal( err )
+    error( "CFCTime: Failed to connect to database! '" .. err .. "'" )
 end
 
 hook.Add( "PostGamemodeLoaded", "CFC_Time_DBInit", function()

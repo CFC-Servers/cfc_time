@@ -3,8 +3,6 @@ require( "logger" )
 CFCTime = {}
 
 CFCTime.Logger = Logger( "CFCTime" )
-CFCTime.Logger:on( "error" ):call( ErrorNoHalt )
-CFCTime.Logger:on( "fatal" ):call( error )
 
 AddCSLuaFile( "cfc_time/shared/config.lua" )
 AddCSLuaFile( "cfc_time/shared/utime_compat.lua" )

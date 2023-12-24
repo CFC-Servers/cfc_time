@@ -175,15 +175,13 @@ function ctime:cleanupPlayer( ply )
     local steamID64 = ply:SteamID64()
 
     if not steamID64 then
-        logger:error( "Player " .. ply:GetName() .. " did not have a steamID64 on disconnect" )
-        return
+        error( "Player " .. ply:GetName() .. " did not have a steamID64 on disconnect" )
     end
 
     logger:debug( "Player " .. ply:GetName() .. " ( " .. steamID64 .. " ) left at " .. now )
 
     if not self.sessions[steamID64] then
-        logger:error( "No pending update for above player, did they leave before database returned?" )
-        return
+        error( "No pending update for above player, did they leave before database returned?" )
     end
 
     self.sessions[steamID64].departed = now
