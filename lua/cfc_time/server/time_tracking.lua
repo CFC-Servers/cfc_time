@@ -181,7 +181,8 @@ function ctime:cleanupPlayer( ply )
     logger:debug( "Player " .. ply:GetName() .. " ( " .. steamID64 .. " ) left at " .. now )
 
     if not self.sessions[steamID64] then
-        error( "No pending update for above player, did they leave before database returned?" )
+        logger:debug( "No pending update for above player, did they leave before database returned?" )
+        return
     end
 
     self.sessions[steamID64].departed = now
