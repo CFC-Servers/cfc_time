@@ -176,7 +176,7 @@ hook.Add( "Think", "CFC_Time_Init", function()
     ctime:startTimer()
 end )
 
-hook.Add( "PlayerFullLoad", "CFC_Time_PlayerInit", function( ply )
+hook.Add( "PlayerInitialSpawn", "CFC_Time_PlayerInit", function( ply )
     if ply:IsBot() then return end
 
     ctime:initPlayer( ply )
