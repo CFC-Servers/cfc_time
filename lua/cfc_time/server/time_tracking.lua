@@ -139,7 +139,7 @@ function ctime:initPlayer( ply )
     local function setupPly( totalTime, isFirstVisit, firstJoin )
         local sessionTotalTime = totalTime + (getNow() - now)
 
-        local initialTime = { seconds = 0 }
+        local initialTime = { seconds = 0, firstJoin = firstJoin }
 
         initialTime.add = function( seconds )
             initialTime.seconds = initialTime.seconds + seconds
@@ -149,12 +149,17 @@ function ctime:initPlayer( ply )
             initialTime.seconds = seconds
         end
 
+        -- Lets hooks that backfill historical sessions move the first join earlier
+        initialTime.setFirstJoin = function( timestamp )
+            initialTime.firstJoin = math.min( initialTime.firstJoin, timestamp )
+        end
+
         hook.Run( "CFC_Time_PlayerInitialTime", ply, isFirstVisit, initialTime )
         sessionTotalTime = sessionTotalTime + initialTime.seconds
 
         ctime.totalTimes[steamID64] = sessionTotalTime
 
-        ctime:setFirstJoin( ply, firstJoin )
+        ctime:setFirstJoin( ply, initialTime.firstJoin )
     end
 
     storage:PlayerInit( ply, now, function( data )
