@@ -29,6 +29,10 @@ function ctime:broadcastPlayerTime( ply, totalTime, joined, duration )
     hook.Run( "CFC_Time_PlayerTimeUpdated", ply, totalTime, joined, duration )
 end
 
+function ctime:setFirstJoin( ply, firstJoin )
+    ply:SetNW2Int( "CFC_Time_FirstJoin", firstJoin )
+end
+
 function ctime:broadcastTimes()
     for steamID64, totalTime in pairs( self.totalTimes ) do
         local ply = steamID64ToPly[steamID64]
@@ -66,7 +70,7 @@ function ctime:updateTimes()
         local joined = data.joined
         local departed = data.departed
 
-        local sessionTime = ( departed or now ) - joined
+        local sessionTime = (departed or now) - joined
         data.duration = sessionTime
 
         local sessionID = sessionIDs[steamID64]
@@ -130,8 +134,8 @@ function ctime:initPlayer( ply )
     local now = getNow()
     local steamID64 = ply:SteamID64()
 
-    local function setupPly( totalTime, isFirstVisit )
-        local sessionTotalTime = totalTime + ( getNow() - now )
+    local function setupPly( totalTime, isFirstVisit, firstJoin )
+        local sessionTotalTime = totalTime + (getNow() - now)
 
         local initialTime = { seconds = 0 }
 
@@ -147,6 +151,8 @@ function ctime:initPlayer( ply )
         sessionTotalTime = sessionTotalTime + initialTime.seconds
 
         ctime.totalTimes[steamID64] = sessionTotalTime
+
+        ctime:setFirstJoin( ply, firstJoin )
     end
 
     storage:PlayerInit( ply, now, function( data )
@@ -159,11 +165,11 @@ function ctime:initPlayer( ply )
         ctime.sessionIDs[steamID64] = sessionID
         ctime.sessions[steamID64] = { joined = now }
 
-        if isFirstVisit then return setupPly( 0, true ) end
+        if isFirstVisit then return setupPly( 0, true, now ) end
 
-        storage:GetTotalTime( steamID64, function( total )
-            logger:debug( "Got total time for ", ply, total )
-            setupPly( total, false )
+        storage:GetTotalTime( steamID64, function( total, firstJoin )
+            logger:debug( "Got total time for ", ply, total, firstJoin )
+            setupPly( total, false, firstJoin )
         end )
     end )
 end

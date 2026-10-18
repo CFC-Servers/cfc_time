@@ -74,7 +74,7 @@ end
 
 function storage:GetTotalTime( steamID, callback )
     local onSuccess = function( _, data )
-        callback( data[1]["SUM(duration)"] )
+        callback( data[1]["SUM(duration)"], tonumber( data[1]["MIN(joined)"] ) )
     end
 
     local query = self:Prepare( "totalTime", onSuccess, steamID )

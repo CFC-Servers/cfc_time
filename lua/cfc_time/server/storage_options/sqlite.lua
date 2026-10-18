@@ -31,8 +31,9 @@ end
 function storage:GetTotalTime( steamID, callback )
     local data = self:QueryTotalTime( steamID )
     local sum = data[1]["SUM(duration)"]
+    local firstJoin = tonumber( data[1]["MIN(joined)"] )
 
-    if callback then callback( sum ) end
+    if callback then callback( sum, firstJoin ) end
 
     return sum
 end
