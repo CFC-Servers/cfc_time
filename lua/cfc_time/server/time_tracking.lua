@@ -30,6 +30,8 @@ function ctime:broadcastPlayerTime( ply, totalTime, joined, duration )
 end
 
 function ctime:setFirstJoin( ply, firstJoin )
+    if not IsValid( ply ) then return end
+
     ply:SetNW2Int( "CFC_Time_FirstJoin", firstJoin )
 end
 
