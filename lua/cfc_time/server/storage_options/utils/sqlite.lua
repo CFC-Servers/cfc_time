@@ -102,7 +102,7 @@ end
 
 function storage:QueryTotalTime( steamID )
     return queryFormat( [[
-        SELECT SUM(duration)
+        SELECT SUM(duration), MIN(joined)
         FROM cfc_time_sessions
         WHERE user_id = %s
         AND realm = %s
