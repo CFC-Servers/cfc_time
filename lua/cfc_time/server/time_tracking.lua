@@ -72,7 +72,7 @@ function ctime:updateTimes()
         local joined = data.joined
         local departed = data.departed
 
-        local sessionTime = (departed or now) - joined
+        local sessionTime = ( departed or now ) - joined
         data.duration = sessionTime
 
         local sessionID = sessionIDs[steamID64]
@@ -137,7 +137,7 @@ function ctime:initPlayer( ply )
     local steamID64 = ply:SteamID64()
 
     local function setupPly( totalTime, isFirstVisit, firstJoin )
-        local sessionTotalTime = totalTime + (getNow() - now)
+        local sessionTotalTime = totalTime + ( getNow() - now )
 
         local initialTime = { seconds = 0, firstJoin = firstJoin }
 
