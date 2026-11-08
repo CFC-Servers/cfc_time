@@ -6,9 +6,11 @@ CFCTime.Logger = Logger( "CFCTime" )
 
 AddCSLuaFile( "cfc_time/shared/config.lua" )
 AddCSLuaFile( "cfc_time/shared/utime_compat.lua" )
+AddCSLuaFile( "cfc_time/shared/first_join.lua" )
 
 include( "cfc_time/shared/config.lua" )
 include( "cfc_time/shared/utime_compat.lua" )
+include( "cfc_time/shared/first_join.lua" )
 
 if SERVER then
     require( "playerload" )

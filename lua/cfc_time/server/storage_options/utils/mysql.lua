@@ -92,7 +92,7 @@ function storage:PrepareStatements()
     ]], realm )
 
     local totalTime = string.format( [[
-        SELECT SUM(duration)
+        SELECT SUM(duration), MIN(joined)
         FROM sessions
         WHERE user_id = ?
         AND realm = '%s'
