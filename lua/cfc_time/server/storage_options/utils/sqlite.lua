@@ -115,7 +115,6 @@ function storage:QueryLatestSessionId()
     ]] )
 end
 
-
 function storage:QueryPlayerSummary( steamID )
     return queryFormat( [[
         SELECT SUM(duration) AS total_time, MIN(joined) AS first_join, MAX(joined) AS last_join

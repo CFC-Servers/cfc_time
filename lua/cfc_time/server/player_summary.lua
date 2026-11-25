@@ -2,8 +2,15 @@ util.AddNetworkString( "CFC_Time_PlayerSummary" )
 
 local storage = CFCTime.Storage
 
+local function canRequestPlayerSummary( ply )
+    local hookResult = hook.Run( "CFC_Time_CanRequestPlayerSummary", ply )
+    if hookResult ~= nil then return hookResult end
+
+    return ply:IsAdmin()
+end
+
 net.Receive( "CFC_Time_PlayerSummary", function( _, ply )
-    if not ply:IsAdmin() then return end
+    if not canRequestPlayerSummary( ply ) then return end
 
     local steamID64 = net.ReadString()
 
