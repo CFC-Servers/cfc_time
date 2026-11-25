@@ -38,6 +38,11 @@ function storage:GetTotalTime( steamID, callback )
     return sum
 end
 
+function storage:GetPlayerSummary( steamID, callback )
+    local rows = self:QueryPlayerSummary( steamID )
+    callback( self:BuildPlayerSummary( rows[1] ) )
+end
+
 function storage:CreateSession( steamID, sessionStart, duration )
     local sessionEnd = sessionStart + duration
     self:QueryCreateSession( steamID, sessionStart, sessionEnd, duration )
