@@ -82,6 +82,16 @@ function storage:GetTotalTime( steamID, callback )
     query:start()
 end
 
+function storage:GetPlayerSummary( steamID, callback )
+    local query = self:PlayerSummaryQuery( steamID )
+
+    query.onSuccess = function( _, data )
+        callback( storage:BuildPlayerSummary( data[1] ) )
+    end
+
+    query:start()
+end
+
 function storage:CreateSession( steamID, sessionStart, sessionDuration )
     local maxDuration = self.MAX_SESSION_DURATION
     local sessionsCount = math.max( 1, math.ceil( sessionDuration / maxDuration ) )

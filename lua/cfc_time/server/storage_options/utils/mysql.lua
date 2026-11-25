@@ -27,6 +27,24 @@ function storage:InitQuery( rawQuery )
     return query
 end
 
+function storage:PlayerSummaryQuery( steamID )
+    local playerSummary = string.format( [[
+        SELECT SUM(duration) AS total_time, MIN(joined) AS first_join, MAX(joined) AS last_join
+        FROM sessions
+        WHERE user_id = ?
+        AND realm = '%s'
+    ]], self.realm )
+
+    local query = self.database:prepare( playerSummary )
+    query:setString( 1, steamID )
+
+    query.onError = function( _, err, errQuery )
+        error( "Query error! '" .. err .. "' - " .. errQuery )
+    end
+
+    return query
+end
+
 function storage:CreateUsersQuery()
     local createUsers = [[
         CREATE TABLE IF NOT EXISTS users(
